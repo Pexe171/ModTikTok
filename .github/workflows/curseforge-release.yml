@@ -32,7 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
-      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+      # Accept the Project ID from Variables (recommended) or Secrets so a
+      # harmless placement mistake does not block a release.
+      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID || secrets.CURSEFORGE_PROJECT_ID }}
 
     steps:
       - name: Check out source
@@ -48,12 +50,16 @@ jobs:
       - name: Validate publishing configuration
         shell: bash
         run: |
+          configuration_error=0
           if [[ -z "$CURSEFORGE_API_TOKEN" ]]; then
-            echo "Missing GitHub Actions secret: CURSEFORGE_API_TOKEN" >&2
-            exit 1
+            echo "::error title=Missing CurseForge token::Create the Actions secret CURSEFORGE_API_TOKEN."
+            configuration_error=1
           fi
           if [[ ! "$CURSEFORGE_PROJECT_ID" =~ ^[0-9]+$ ]]; then
-            echo "Missing or invalid GitHub Actions variable: CURSEFORGE_PROJECT_ID" >&2
+            echo "::error title=Missing CurseForge Project ID::Create CURSEFORGE_PROJECT_ID as an Actions variable (recommended) or secret, using digits only."
+            configuration_error=1
+          fi
+          if [[ "$configuration_error" -ne 0 ]]; then
             exit 1
           fi
 
