@@ -170,12 +170,14 @@ jobs:
               isMarkedForManualRelease: false
             }' > curseforge-metadata.json
 
+          metadata="$(jq -c . curseforge-metadata.json)"
+
           upload_http_code="$(curl --silent --show-error \
             --output curseforge-response.json \
             --write-out '%{http_code}' \
             --request POST \
             --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
-            --form "metadata=@curseforge-metadata.json;type=application/json" \
+            --form-string "metadata=${metadata}" \
             --form "file=@${JAR_PATH};type=application/java-archive" \
             "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file")"
 
