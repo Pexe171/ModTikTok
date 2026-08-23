@@ -15,11 +15,24 @@ Never put the token in `gradle.properties`, a workflow file, a script, a commit,
 
 ## Publishing an update
 
+### From the GitHub interface
+
 1. Change `mod_version` in `gradle.properties`.
 2. Update `CHANGELOG.md` with the new version.
 3. Commit and push the changes to GitHub.
 4. Open **Actions > Publish to CurseForge > Run workflow**.
 5. Select `beta`, `release`, or `alpha`, then run it.
+
+### From a version tag
+
+After committing and pushing the version, create a matching tag:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+Tags matching `v*` automatically run the same workflow with the `beta` channel. The workflow refuses a tag whose version does not match `mod_version` in `gradle.properties`.
 
 The workflow uses Java 21, runs the automated tests, creates the shaded distributable JAR, preserves a copy as a GitHub Actions artifact, and uploads it through the official CurseForge Upload API. CurseForge moderation still applies to uploaded files.
 

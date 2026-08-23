@@ -1,6 +1,9 @@
 name: Publish to CurseForge
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       release_type:
@@ -54,6 +57,15 @@ jobs:
             exit 1
           fi
 
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [[ "$tag_version" != "$mod_version" ]]; then
+              echo "Tag v${tag_version} does not match mod_version=${mod_version}" >&2
+              exit 1
+            fi
+          fi
+
       - name: Build and test
         shell: bash
         run: |
@@ -82,7 +94,7 @@ jobs:
         shell: bash
         env:
           REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
-          RELEASE_TYPE: ${{ inputs.release_type }}
+          RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'beta' }}
           JAR_PATH: ${{ steps.artifact.outputs.jar_path }}
         run: |
           mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
