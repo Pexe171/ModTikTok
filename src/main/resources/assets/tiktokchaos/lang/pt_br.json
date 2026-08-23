@@ -1,0 +1,10 @@
+{
+  "key.categories.tiktokchaos": "TikTok Chaos",
+  "key.tiktokchaos.open_menu": "Abrir painel da LIVE",
+  "gui.tiktokchaos.title": "TikTok Chaos",
+  "gui.tiktokchaos.username": "Usuário TikTok",
+  "gui.tiktokchaos.connect": "Conectar",
+  "gui.tiktokchaos.disconnect": "Desconectar",
+  "gui.tiktokchaos.save": "Salvar",
+  "gui.tiktokchaos.close": "Fechar"
+}

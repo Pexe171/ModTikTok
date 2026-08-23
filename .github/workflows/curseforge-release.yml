@@ -1,0 +1,119 @@
+name: Publish to CurseForge
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: CurseForge release channel
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - release
+          - alpha
+      display_name:
+        description: Optional file display name
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curseforge-release
+  cancel-in-progress: false
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    env:
+      CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Validate publishing configuration
+        shell: bash
+        run: |
+          if [[ -z "$CURSEFORGE_API_TOKEN" ]]; then
+            echo "Missing GitHub Actions secret: CURSEFORGE_API_TOKEN" >&2
+            exit 1
+          fi
+          if [[ ! "$CURSEFORGE_PROJECT_ID" =~ ^[0-9]+$ ]]; then
+            echo "Missing or invalid GitHub Actions variable: CURSEFORGE_PROJECT_ID" >&2
+            exit 1
+          fi
+
+      - name: Build and test
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew test shadowJar --no-daemon
+
+      - name: Find distributable JAR
+        id: artifact
+        shell: bash
+        run: |
+          jar_path="$(find build/libs -maxdepth 1 -type f -name 'tiktok-chaos-*.jar' ! -name '*-thin.jar' -print -quit)"
+          if [[ -z "$jar_path" ]]; then
+            echo "Distributable JAR not found" >&2
+            exit 1
+          fi
+          echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
+
+      - name: Keep a GitHub build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-chaos-${{ github.run_number }}
+          path: ${{ steps.artifact.outputs.jar_path }}
+          if-no-files-found: error
+
+      - name: Upload file to CurseForge
+        shell: bash
+        env:
+          REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          JAR_PATH: ${{ steps.artifact.outputs.jar_path }}
+        run: |
+          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
+          display_name="$REQUESTED_DISPLAY_NAME"
+          if [[ -z "$display_name" ]]; then
+            display_name="TikTok Chaos ${mod_version} - NeoForge 1.21.1"
+          fi
+
+          jq -n \
+            --rawfile changelog CHANGELOG.md \
+            --arg displayName "$display_name" \
+            --arg releaseType "$RELEASE_TYPE" \
+            '{
+              changelog: $changelog,
+              changelogType: "markdown",
+              displayName: $displayName,
+              gameVersionNames: ["1.21.1", "NeoForge", "Client"],
+              releaseType: $releaseType,
+              isMarkedForManualRelease: false
+            }' > curseforge-metadata.json
+
+          response="$(curl --silent --show-error --fail-with-body \
+            --request POST \
+            --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
+            --form "metadata=@curseforge-metadata.json;type=application/json" \
+            --form "file=@${JAR_PATH};type=application/java-archive" \
+            "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file")"
+
+          file_id="$(jq -r '.id // empty' <<< "$response")"
+          if [[ -z "$file_id" ]]; then
+            echo "CurseForge did not return a file ID" >&2
+            exit 1
+          fi
+          echo "Uploaded CurseForge file ID: $file_id"

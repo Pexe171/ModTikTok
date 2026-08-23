@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible TikTok Chaos problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve TikTok Chaos. Never paste TikTok, CurseForge or GitHub tokens.
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: TikTok Chaos version
+      placeholder: 1.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: neoforge-version
+    attributes:
+      label: NeoForge version
+      placeholder: 21.1.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Explain the expected behavior and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Enter a singleplayer world
+        2. Press F8
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Attach logs/latest.log or a crash report. Remove personal data and secrets first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: modpack
+    attributes:
+      label: Modpack or mod list
+      description: Add the pack name/version or attach a mod list when the issue happens with other mods.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I tested with the newest available TikTok Chaos build.
+          required: true
+        - label: I removed passwords, cookies and API tokens from the report.
+          required: true
