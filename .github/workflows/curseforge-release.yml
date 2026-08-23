@@ -103,33 +103,87 @@ jobs:
           RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'beta' }}
           JAR_PATH: ${{ steps.artifact.outputs.jar_path }}
         run: |
+          report_api_error() {
+            local context="$1"
+            local http_code="$2"
+            local response_file="$3"
+            local message
+
+            message="$(jq -r '.errorMessage // .message // .error // empty' "$response_file" 2>/dev/null || true)"
+            if [[ -z "$message" ]]; then
+              message="$(tr '\n' ' ' < "$response_file" | cut -c1-500)"
+            fi
+            if [[ -z "$message" ]]; then
+              message="The API returned no response body."
+            fi
+
+            echo "::error title=CurseForge API error::${context} failed with HTTP ${http_code}: ${message}"
+            exit 1
+          }
+
           mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
           display_name="$REQUESTED_DISPLAY_NAME"
           if [[ -z "$display_name" ]]; then
             display_name="TikTok Chaos ${mod_version} - NeoForge 1.21.1"
           fi
 
+          versions_http_code="$(curl --silent --show-error \
+            --output curseforge-versions.json \
+            --write-out '%{http_code}' \
+            --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
+            "https://minecraft.curseforge.com/api/game/versions")"
+
+          if [[ ! "$versions_http_code" =~ ^2[0-9][0-9]$ ]]; then
+            report_api_error "Reading game versions" "$versions_http_code" curseforge-versions.json
+          fi
+
+          minecraft_version_id="$(jq -r '[.[] | select(.name == "1.21.1") | .id] | first // empty' curseforge-versions.json)"
+          neoforge_version_id="$(jq -r '[.[] | select(.name == "NeoForge") | .id] | first // empty' curseforge-versions.json)"
+          client_version_id="$(jq -r '[.[] | select(.name == "Client") | .id] | first // empty' curseforge-versions.json)"
+
+          if [[ ! "$minecraft_version_id" =~ ^[0-9]+$ ]] || \
+             [[ ! "$neoforge_version_id" =~ ^[0-9]+$ ]] || \
+             [[ ! "$client_version_id" =~ ^[0-9]+$ ]]; then
+            echo "::error title=CurseForge versions not found::Could not resolve 1.21.1, NeoForge, and Client to numeric game version IDs."
+            exit 1
+          fi
+
+          game_version_ids="$(jq -n -c \
+            --argjson minecraft "$minecraft_version_id" \
+            --argjson neoforge "$neoforge_version_id" \
+            --argjson client "$client_version_id" \
+            '[$minecraft, $neoforge, $client] | unique')"
+
+          echo "Resolved CurseForge game version IDs for Minecraft 1.21.1, NeoForge, and Client."
+
           jq -n \
             --rawfile changelog CHANGELOG.md \
             --arg displayName "$display_name" \
             --arg releaseType "$RELEASE_TYPE" \
+            --argjson gameVersions "$game_version_ids" \
             '{
               changelog: $changelog,
               changelogType: "markdown",
               displayName: $displayName,
-              gameVersionNames: ["1.21.1", "NeoForge", "Client"],
+              gameVersions: $gameVersions,
               releaseType: $releaseType,
               isMarkedForManualRelease: false
             }' > curseforge-metadata.json
 
-          response="$(curl --silent --show-error --fail-with-body \
+          upload_http_code="$(curl --silent --show-error \
+            --output curseforge-response.json \
+            --write-out '%{http_code}' \
             --request POST \
             --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
             --form "metadata=@curseforge-metadata.json;type=application/json" \
             --form "file=@${JAR_PATH};type=application/java-archive" \
             "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file")"
 
-          file_id="$(jq -r '.id // empty' <<< "$response")"
+          if [[ ! "$upload_http_code" =~ ^2[0-9][0-9]$ ]]; then
+            report_api_error "Uploading the mod file" "$upload_http_code" curseforge-response.json
+          fi
+
+          file_id="$(jq -r '.id // empty' curseforge-response.json)"
           if [[ -z "$file_id" ]]; then
             echo "CurseForge did not return a file ID" >&2
             exit 1
