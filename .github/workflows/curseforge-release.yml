@@ -9,14 +9,18 @@ on:
       release_type:
         description: CurseForge release channel
         required: true
-        default: beta
+        default: release
         type: choice
         options:
-          - beta
           - release
+          - beta
           - alpha
       display_name:
         description: Optional file display name
+        required: false
+        type: string
+      existing_file_id:
+        description: Optional CurseForge file ID to update instead of uploading
         required: false
         type: string
 
@@ -73,12 +77,14 @@ jobs:
           fi
 
       - name: Build and test
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' }}
         shell: bash
         run: |
           chmod +x gradlew
           ./gradlew test shadowJar --no-daemon
 
       - name: Find distributable JAR
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' }}
         id: artifact
         shell: bash
         run: |
@@ -90,6 +96,7 @@ jobs:
           echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
 
       - name: Keep a GitHub build artifact
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' }}
         uses: actions/upload-artifact@v4
         with:
           name: tiktok-chaos-${{ github.run_number }}
@@ -97,10 +104,11 @@ jobs:
           if-no-files-found: error
 
       - name: Upload file to CurseForge
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' }}
         shell: bash
         env:
           REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
-          RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'beta' }}
+          RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'release' }}
           JAR_PATH: ${{ steps.artifact.outputs.jar_path }}
         run: |
           report_api_error() {
@@ -191,3 +199,54 @@ jobs:
             exit 1
           fi
           echo "Uploaded CurseForge file ID: $file_id"
+
+      - name: Update existing CurseForge file
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.existing_file_id != '' }}
+        shell: bash
+        env:
+          TARGET_FILE_ID: ${{ inputs.existing_file_id }}
+          REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [[ ! "$TARGET_FILE_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error title=Invalid CurseForge file ID::The existing_file_id input must contain digits only."
+            exit 1
+          fi
+
+          if [[ -n "$REQUESTED_DISPLAY_NAME" ]]; then
+            metadata="$(jq -n -c \
+              --argjson fileID "$TARGET_FILE_ID" \
+              --arg releaseType "$RELEASE_TYPE" \
+              --arg displayName "$REQUESTED_DISPLAY_NAME" \
+              '{fileID: $fileID, releaseType: $releaseType, displayName: $displayName}')"
+          else
+            metadata="$(jq -n -c \
+              --argjson fileID "$TARGET_FILE_ID" \
+              --arg releaseType "$RELEASE_TYPE" \
+              '{fileID: $fileID, releaseType: $releaseType}')"
+          fi
+
+          update_http_code="$(curl --silent --show-error \
+            --output curseforge-update-response.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
+            --form-string "metadata=${metadata}" \
+            "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/update-file")"
+
+          if [[ ! "$update_http_code" =~ ^2[0-9][0-9]$ ]]; then
+            message="$(jq -r '.errorMessage // .message // .error // empty' curseforge-update-response.json 2>/dev/null || true)"
+            if [[ -z "$message" ]]; then
+              message="$(tr '\n' ' ' < curseforge-update-response.json | cut -c1-500)"
+            fi
+            echo "::error title=CurseForge API error::Updating file ${TARGET_FILE_ID} failed with HTTP ${update_http_code}: ${message}"
+            exit 1
+          fi
+
+          updated_file_id="$(jq -r '.id // empty' curseforge-update-response.json)"
+          if [[ "$updated_file_id" != "$TARGET_FILE_ID" ]]; then
+            echo "::error title=Unexpected CurseForge response::The API did not confirm file ${TARGET_FILE_ID}."
+            exit 1
+          fi
+
+          echo "Updated CurseForge file ID ${updated_file_id} to release type ${RELEASE_TYPE}."
