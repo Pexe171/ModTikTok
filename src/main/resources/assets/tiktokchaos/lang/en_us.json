@@ -1,6 +1,7 @@
 {
   "key.categories.tiktokchaos": "TikTok Chaos",
   "key.tiktokchaos.open_menu": "Open LIVE dashboard",
+  "key.tiktokchaos.emergency_stop": "Emergency stop and cleanup",
   "gui.tiktokchaos.title": "TikTok Chaos",
   "gui.tiktokchaos.username": "TikTok username",
   "gui.tiktokchaos.connect": "Connect",

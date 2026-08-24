@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 até 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge e NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 até 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-  <img alt="Versão 1.3.0" src="https://img.shields.io/badge/versão-1.3.0-E83E8C">
+  <img alt="Versão 1.4.0" src="https://img.shields.io/badge/versão-1.4.0-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
@@ -36,7 +36,9 @@ Tudo é configurado no próprio Minecraft pelo painel aberto com `F8`. Não é n
 - **Modo aleatório:** escolha `Aleatório (todos os mods)` para sortear outro mob, item ou efeito em cada ativação.
 - **Editor de regras completo:** combine condições, cooldowns, quantidades e várias ações sem editar JSON manualmente.
 - **Preparado para tráfego de LIVE:** filas limitadas, controle de velocidade, proteção contra eventos duplicados e registries em cache.
-- **Padrões seguros:** mobs temporários, raio somente visual, comentários nunca executados como comandos e nenhuma ação própria de quebrar blocos.
+- **Padrões seguros:** pausa global, emergência `F9`, mobs temporários, rollback e ações de mundo desligadas por padrão.
+- **Presets e combos:** presets locais, quatro modos de combo, escala declarativa, roleta ponderada e sequências temporizadas.
+- **Ferramentas para LIVE:** simulador detalhado, metas/ranking da sessão e overlay OBS local opcional.
 
 ## Como funciona
 
@@ -56,10 +58,10 @@ Motor de regras configurável ──► fila de prioridade limitada
 Thread do servidor integrado do Minecraft
         │
         ▼
-Mob, item, efeito, teleporte, clima ou ação visual
+Mob, item, efeito, sequência, meta, clima ou ação visual
 ```
 
-O conector recebe somente eventos de uma LIVE pública. Ele não entra na conta do TikTok, não publica comentários, não controla o perfil e não abre servidor web local.
+O conector recebe somente eventos de uma LIVE pública. Ele não entra na conta do TikTok, não publica comentários nem controla o perfil. O overlay OBS opcional abre apenas uma página HTTP somente leitura em `127.0.0.1`, protegida por um token aleatório da sessão.
 
 ## Editor visual de regras
 
@@ -73,6 +75,10 @@ No Minecraft 1.20.1 e 1.21.1, abra `F8` → **Regras** → **Editar** e selecion
 | Teleporte curto | — | Raio |
 | Clima temporário | — | Duração |
 | Mensagem | — | Texto personalizado |
+| Som, partículas e mensagem central | ID/Texto | Quantidade, duração e sequência |
+| Canhão de presentes e fonte de curtidas | Item/— | Efeito apenas visual |
+| Boss do espectador | Mob compatível | Limite separado de bosses |
+| Caixa reversível | — | Confirmação dupla, limite e rollback |
 
 Cada galeria possui:
 
@@ -142,7 +148,7 @@ Todas as builds são client-side, funcionam no servidor integrado singleplayer e
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.3.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
+1. Baixe `tiktok-chaos-1.4.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.
@@ -159,9 +165,11 @@ A tela `F8` completa das versões 1.20.1 e 1.21.1 possui:
 - **Regras:** criação, edição, pausa e combinação de ações.
 - **Histórico:** últimos eventos recebidos e ações executadas.
 - **Segurança:** velocidade das ações, limite de mobs e tempo de vida.
-- **Simulador:** teste das regras sem precisar abrir uma LIVE real.
+- **Simulador:** teste rápido ou detalhado com usuário, presente, moedas, quantidade, curtidas e comentário.
+- **Presets:** prévia e aplicação por substituição ou mesclagem, sempre com backup automático.
+- **Sessão:** metas, ranking, privacidade de nomes, avatares temporários e overlay OBS local.
 
-O HUD compacto mostra o estado da conexão, último evento, ações na fila e mobs temporários monitorados.
+O HUD compacto mostra conexão, estado `ATIVO/PAUSADO`, último evento, fila e mobs. Metas, ranking e chat são opcionais.
 
 ## Modelo de segurança
 
@@ -169,9 +177,13 @@ O HUD compacto mostra o estado da conexão, último evento, ações na fila e mo
 - Somente gatilhos de comentário configurados explicitamente são comparados.
 - Mobs criados possuem limite global e tempo de vida configuráveis.
 - As ações passam por uma fila limitada, priorizada e com controle de velocidade.
+- `F9` pausa tudo, cancela sequências pendentes, remove entidades temporárias e restaura efeitos, clima e blocos controlados pelo mod.
+- A proteção adaptativa reduz o ritmo quando detecta ticks lentos.
 - Eventos repetidos ou duplicados são filtrados.
 - Raios criados pelo mod são apenas visuais: não causam dano e não criam fogo.
-- O mod não altera gamerules, não limpa inventários e não possui ações próprias para quebrar blocos.
+- O mod não altera gamerules nem limpa inventários. A única ação de blocos incluída é reversível, começa desligada, exige confirmação dupla, ignora block entities e respeita limite/tempo de restauração.
+- Avatares começam desligados, aceitam somente HTTPS de hosts permitidos, têm limites de arquivo/dimensão e cache apagado ao fim da sessão.
+- O overlay OBS é somente leitura, escuta apenas em `127.0.0.1` e usa URL com token da sessão.
 - Os pools aleatórios são montados uma vez, mas todos os limites continuam valendo para cada resultado.
 
 Conteúdo aleatório de todos os mods pode incluir itens, efeitos ou criaturas propositalmente caóticos fornecidos pelo jogo ou por outro mod. Faça backup de mundos importantes antes de usar regras aleatórias muito amplas.
@@ -185,6 +197,8 @@ As configurações e regras ficam em:
 ```
 
 O arquivo é salvo localmente. O histórico dos eventos da LIVE permanece somente na memória durante a sessão atual do Minecraft.
+
+Presets importados/exportados ficam em `config/tiktok-chaos/presets/`. As dez versões anteriores da configuração são mantidas em `config/tiktok-chaos.json.backups/`.
 
 ## Solução de problemas
 

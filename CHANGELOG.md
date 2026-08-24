@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0 - Live control, presets, combos, and session tools
+
+- Added global `ACTIVE/PAUSED` action state and an `F9` emergency stop that clears the queue, cancels sequences, removes temporary entities, and restores tracked effects, weather, and reversible blocks without disconnecting the LIVE.
+- Fixed queue shrinking so it discards the lowest-priority work instead of urgent gifts.
+- Added versioned configuration migration, atomic writes, and automatic retention of the ten latest backups.
+- Added built-in and local presets with preview, replace/merge modes, deterministic duplicate IDs, registry validation, export, and privacy-safe documents that never include connection data.
+- Added a detailed simulator for username, gift ID/name, unit coins, amount, likes, and comments; previews do not consume cooldowns, counters, statistics, or queue capacity.
+- Added `PER_UNIT`, `ONCE`, `TIERED`, and `SCALED` gift execution while preserving the existing three-roses-equals-three-actions behavior for migrated rules.
+- Added declarative scaling, deterministic weighted roulette, bounded timelines, and safe cinematic actions including sounds, launch, freeze, particles, centered messages, visual item rain, Gift Cannon, and Like Fountain.
+- Added in-memory-only goals, rankings, viewer-mob defeat counts, optional chat widgets, name hiding, and automatic session reset that survives reconnect attempts.
+- Added optional temporary avatars with HTTPS allowlists, byte/dimension limits, redirect blocking, public-address checks, and session cleanup.
+- Added bounded viewer bosses and an opt-in reversible block box with double confirmation, block-entity protection, change limits, and rollback.
+- Added a read-only OBS browser overlay bound only to `127.0.0.1`, with a random session token, CSP, and no LAN listener.
+- Added adaptive action throttling during slow ticks and expanded tests across the complete six-build Forge/NeoForge matrix.
+
 ## 1.3.0 - Multi-version Forge ports
 
 - Added Forge builds for Minecraft 1.16.5, 1.18.2, 1.19.2, and 1.20.1 while keeping Forge and NeoForge 1.21.1.

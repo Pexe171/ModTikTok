@@ -1,5 +1,7 @@
 package br.com.modtiktok.tiktokchaos.config;
 
+import br.com.modtiktok.tiktokchaos.analytics.GoalMetric;
+import br.com.modtiktok.tiktokchaos.analytics.GoalSpec;
 import br.com.modtiktok.tiktokchaos.live.LiveEventType;
 import br.com.modtiktok.tiktokchaos.rule.ActionSpec;
 import br.com.modtiktok.tiktokchaos.rule.ActionType;
@@ -10,14 +12,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TikTokChaosConfig {
-    public int schemaVersion = 1;
+    public static final int CURRENT_SCHEMA_VERSION = 3;
+
+    public int schemaVersion = CURRENT_SCHEMA_VERSION;
     public Connection connection = new Connection();
     public Hud hud = new Hud();
     public Safety safety = new Safety();
+    public Avatars avatars = new Avatars();
+    public Overlay overlay = new Overlay();
+    public List<GoalSpec> goals = new ArrayList<>();
     public List<Rule> rules = new ArrayList<>();
 
     public static TikTokChaosConfig defaults() {
         TikTokChaosConfig config = new TikTokChaosConfig();
+        config.goals.add(new GoalSpec("likes-1000", "1.000 curtidas", GoalMetric.LIKES, 1_000));
+        config.goals.add(new GoalSpec("coins-100", "100 moedas", GoalMetric.COINS, 100));
         config.rules.add(likes());
         config.rules.add(follow());
         config.rules.add(share());
@@ -91,6 +100,10 @@ public final class TikTokChaosConfig {
         public int offsetX = 8;
         public int offsetY = 8;
         public int historySize = 100;
+        public boolean showGoals = true;
+        public boolean showRanking = false;
+        public boolean showChat = false;
+        public boolean hideViewerNames = false;
     }
 
     public static final class Safety {
@@ -101,5 +114,23 @@ public final class TikTokChaosConfig {
         public int mobLifetimeSeconds = 60;
         public int maxQueueSize = 200;
         public int maxTriggersPerEvent = 5;
+        public boolean adaptivePerformance = true;
+        public int maxViewerBosses = 3;
+        public boolean destructiveActionsEnabled = false;
+        public boolean destructiveActionsConfirmed = false;
+        public int maxChangedBlocks = 64;
+        public int blockRestoreSeconds = 30;
+    }
+
+    public static final class Avatars {
+        public boolean enabled = false;
+        public int maxBytes = 512 * 1024;
+        public int maxDimension = 512;
+        public List<String> allowedHosts = new ArrayList<>(List.of("*.tiktokcdn.com", "*.tiktokcdn-us.com"));
+    }
+
+    public static final class Overlay {
+        public boolean enabled = false;
+        public int port = 0;
     }
 }

@@ -17,8 +17,10 @@ import net.minecraftforge.fml.loading.FMLPaths;
 public final class ForgeEntrypoint {
     public ForgeEntrypoint(FMLJavaModLoadingContext context) {
         TikTokChaosMod.initialize(FMLPaths.CONFIGDIR.get());
-        context.getModEventBus().addListener((RegisterKeyMappingsEvent event) ->
-                event.register(ClientEvents.openMenuMapping()));
+        context.getModEventBus().addListener((RegisterKeyMappingsEvent event) -> {
+            event.register(ClientEvents.openMenuMapping());
+            event.register(ClientEvents.emergencyStopMapping());
+        });
         context.getModEventBus().addListener((AddGuiOverlayLayersEvent event) ->
                 event.getLayeredDraw().add(
                         ResourceLocation.fromNamespaceAndPath(TikTokChaosMod.MOD_ID, "hud"),

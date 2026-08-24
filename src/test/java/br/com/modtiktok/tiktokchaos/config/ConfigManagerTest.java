@@ -42,4 +42,40 @@ class ConfigManagerTest {
         assertEquals("{ conteúdo inválido", Files.readString(file));
         assertEquals(12, loaded.rules.size());
     }
+
+    @Test
+    void migratesSchemaOneAndPreservesAnAutomaticBackup() throws Exception {
+        Path file = tempDirectory.resolve("config.json");
+        ConfigManager initial = new ConfigManager(file);
+        assertTrue(initial.save());
+        String schemaOne = Files.readString(file).replaceFirst("\"schemaVersion\": "
+                + TikTokChaosConfig.CURRENT_SCHEMA_VERSION, "\"schemaVersion\": 1");
+        Files.writeString(file, schemaOne);
+
+        ConfigManager migrated = new ConfigManager(file);
+        TikTokChaosConfig config = migrated.load();
+
+        assertEquals(TikTokChaosConfig.CURRENT_SCHEMA_VERSION, config.schemaVersion);
+        assertTrue(Files.readString(file).contains("\"schemaVersion\": "
+                + TikTokChaosConfig.CURRENT_SCHEMA_VERSION));
+        try (var backups = Files.list(migrated.getBackupDirectory())) {
+            Path backup = backups.findFirst().orElseThrow();
+            assertTrue(Files.readString(backup).contains("\"schemaVersion\": 1"));
+        }
+    }
+
+    @Test
+    void keepsOnlyTheTenMostRecentBackups() throws Exception {
+        Path file = tempDirectory.resolve("config.json");
+        ConfigManager manager = new ConfigManager(file);
+        TikTokChaosConfig config = manager.load();
+        for (int index = 0; index < 15; index++) {
+            config.hud.offsetX = index;
+            assertTrue(manager.save());
+        }
+
+        try (var backups = Files.list(manager.getBackupDirectory())) {
+            assertEquals(10, backups.count());
+        }
+    }
 }

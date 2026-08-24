@@ -96,4 +96,85 @@ class RuleEngineTest {
         assertTrue(engine.evaluate(config, LiveEvent.comment("Ana", "!zumbi"), 5_000).isEmpty());
         assertEquals(1, engine.evaluate(config, LiveEvent.comment("Bia", "!zumbi"), 5_000).size());
     }
+
+    @Test
+    void previewDoesNotConsumeLikeCountersOrCooldowns() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+
+        assertTrue(engine.preview(config, LiveEvent.like("Ana", 60), 1_000).isEmpty());
+        assertTrue(engine.evaluate(config, LiveEvent.like("Ana", 40), 1_100).isEmpty());
+        assertEquals(1, engine.evaluate(config, LiveEvent.like("Ana", 60), 1_200).size());
+
+        LiveEvent command = LiveEvent.comment("Ana", "!zumbi");
+        assertEquals(1, engine.preview(config, command, 2_000).size());
+        assertEquals(1, engine.evaluate(config, command, 2_000).size());
+    }
+
+    @Test
+    void supportsOnceTieredAndScaledGiftExecution() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        config.rules.clear();
+        Rule rule = new Rule("combo", "Combo", LiveEventType.GIFT, new RuleCondition(), 0, 0,
+                List.of(ActionSpec.spawn("minecraft:zombie", 1)));
+        config.rules.add(rule);
+
+        rule.execution.mode = ExecutionMode.ONCE;
+        assertEquals(1, engine.evaluate(config, LiveEvent.gift("Ana", 1, "Rosa", 1, 10), 1_000).size());
+
+        rule.execution.mode = ExecutionMode.TIERED;
+        rule.execution.tiers = List.of(
+                new ExecutionTier(1, 0, 1, List.of(ActionSpec.spawn("minecraft:zombie", 1))),
+                new ExecutionTier(3, 3, 1, List.of(ActionSpec.spawn("minecraft:skeleton", 1)))
+        );
+        List<RuleEngine.MatchedAction> tiered = engine.evaluate(config,
+                LiveEvent.gift("Ana", 1, "Rosa", 1, 3), 2_000);
+        assertEquals("minecraft:skeleton", tiered.get(0).action().target);
+
+        rule.execution.mode = ExecutionMode.SCALED;
+        rule.execution.scaling = new ScalingSpec();
+        List<RuleEngine.MatchedAction> scaled = engine.evaluate(config,
+                LiveEvent.gift("Ana", 1, "Rosa", 1, 3), 3_000);
+        assertEquals(3, scaled.get(0).action().amount);
+    }
+
+    @Test
+    void weightedRouletteIsDeterministicForPreviewAndExecution() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        config.rules.clear();
+        Rule rule = new Rule("roulette", "Roleta", LiveEventType.GIFT, new RuleCondition(), 0, 0,
+                List.of());
+        rule.execution.mode = ExecutionMode.ONCE;
+        rule.execution.roulette = List.of(
+                new WeightedChoice("Comida", 1, List.of(ActionSpec.give("minecraft:bread", 1))),
+                new WeightedChoice("Mob", 3, List.of(ActionSpec.spawn("minecraft:zombie", 1)))
+        );
+        config.rules.add(rule);
+        LiveEvent event = LiveEvent.gift("Ana", 1, "Rosa", 1, 1);
+
+        String previewTarget = engine.preview(config, event, 1_000).get(0).action().target;
+        String executedTarget = engine.evaluate(config, event, 1_000).get(0).action().target;
+
+        assertEquals(previewTarget, executedTarget);
+    }
+
+    @Test
+    void schedulesBoundedSequenceStepsWithoutLosingImmediateActions() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        config.rules.clear();
+        Rule rule = new Rule("show", "Show", LiveEventType.FOLLOW, new RuleCondition(), 0, 0,
+                List.of(ActionSpec.simple(ActionType.PARTICLE_BURST)));
+        rule.sequence.add(new SequenceStep(40, ActionSpec.simple(ActionType.CENTER_MESSAGE)));
+        config.rules.add(rule);
+
+        List<RuleEngine.MatchedAction> actions = engine.evaluate(config,
+                LiveEvent.simple(LiveEventType.FOLLOW, "Ana"), 1_000);
+
+        assertEquals(2, actions.size());
+        assertEquals(0, actions.get(0).delayTicks());
+        assertEquals(40, actions.get(1).delayTicks());
+    }
 }

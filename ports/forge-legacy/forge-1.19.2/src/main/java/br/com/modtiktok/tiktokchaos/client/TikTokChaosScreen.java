@@ -51,11 +51,15 @@ public final class TikTokChaosScreen extends Screen {
             runtime.saveConfig();
             rebuildScreen();
         }));
+        addRenderableWidget(new Button(left + 18, top + 122, 194, 22, runStateLabel(), button -> {
+            if (runtime.areActionsPaused()) runtime.resumeActions(); else runtime.pauseActions();
+            rebuildScreen();
+        }));
 
-        addSimulation(left + 18, top + 154, "100 curtidas", LiveEventType.LIKE);
-        addSimulation(left + 217, top + 154, "Presente (120)", LiveEventType.GIFT);
-        addSimulation(left + 18, top + 184, "Comentario !zumbi", LiveEventType.COMMENT);
-        addSimulation(left + 217, top + 184, "Novo follow", LiveEventType.FOLLOW);
+        addSimulation(left + 18, top + 168, "100 curtidas", LiveEventType.LIKE);
+        addSimulation(left + 217, top + 168, "Presente (120)", LiveEventType.GIFT);
+        addSimulation(left + 18, top + 198, "Comentario !zumbi", LiveEventType.COMMENT);
+        addSimulation(left + 217, top + 198, "Novo follow", LiveEventType.FOLLOW);
         addRenderableWidget(new Button(left + PANEL_WIDTH - 82, top + 222, 82, 20,
                 Component.literal("Fechar"), button -> onClose()));
     }
@@ -83,14 +87,21 @@ public final class TikTokChaosScreen extends Screen {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
         int color = runtime.status() == br.com.modtiktok.tiktokchaos.live.ConnectionStatus.CONNECTED
                 ? 0xFF66F0C8 : 0xFFFFC857;
-        font.drawShadow(poseStack, runtime.status().label(), left + 18, top + 124, color);
-        font.drawShadow(poseStack, trim(runtime.statusDetail(), 58), left + 18, top + 138, 0xFFCFC4D6);
+        font.drawShadow(poseStack, runtime.status().label() + " - ACOES " + runtime.runState().label(),
+                left + 224, top + 126, color);
+        font.drawShadow(poseStack, "F9 = emergencia e limpeza", left + 18, top + 150, 0xFFFF6B81);
     }
 
     private Component reconnectLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().connection.autoReconnect;
         return Component.literal((enabled ? "[x] " : "[ ] ") + "Reconexao automatica")
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+    }
+
+    private Component runStateLabel() {
+        boolean paused = TikTokChaosMod.runtime().areActionsPaused();
+        return Component.literal(paused ? "> Retomar acoes" : "|| Pausar acoes")
+                .withStyle(paused ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
     }
 
     private void saveUsername() {

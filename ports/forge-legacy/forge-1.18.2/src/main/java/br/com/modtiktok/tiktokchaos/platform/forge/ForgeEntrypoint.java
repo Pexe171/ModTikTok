@@ -17,6 +17,7 @@ public final class ForgeEntrypoint {
     public ForgeEntrypoint() {
         TikTokChaosMod.initialize(FMLPaths.CONFIGDIR.get());
         ClientRegistry.registerKeyBinding(ClientEvents.openMenuMapping());
+        ClientRegistry.registerKeyBinding(ClientEvents.emergencyStopMapping());
         OverlayRegistry.registerOverlayTop("tiktok_chaos_hud",
                 (gui, poseStack, partialTick, width, height) -> ClientEvents.renderHud(poseStack));
         MinecraftForge.EVENT_BUS.addListener((TickEvent.ClientTickEvent event) -> {

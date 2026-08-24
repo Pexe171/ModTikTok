@@ -35,6 +35,9 @@ public final class ForgeEntrypoint {
     }
 
     private void clientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> ClientRegistry.registerKeyBinding(ClientEvents.openMenuMapping()));
+        event.enqueueWork(() -> {
+            ClientRegistry.registerKeyBinding(ClientEvents.openMenuMapping());
+            ClientRegistry.registerKeyBinding(ClientEvents.emergencyStopMapping());
+        });
     }
 }

@@ -15,7 +15,8 @@ public record LiveEvent(
         int giftId,
         String giftName,
         int giftValue,
-        String comment
+        String comment,
+        String avatarUrl
 ) {
     public LiveEvent {
         id = clean(id, UUID.randomUUID().toString());
@@ -23,9 +24,15 @@ public record LiveEvent(
         userName = clean(userName, "Anônimo");
         giftName = clean(giftName, "");
         comment = clean(comment, "");
+        avatarUrl = cleanUrl(avatarUrl);
         amount = Math.max(0, amount);
         total = Math.max(0, total);
         giftValue = Math.max(0, giftValue);
+    }
+
+    public LiveEvent(String id, LiveEventType type, long occurredAt, String userId, String userName, int amount,
+                     int total, int giftId, String giftName, int giftValue, String comment) {
+        this(id, type, occurredAt, userId, userName, amount, total, giftId, giftName, giftValue, comment, "");
     }
 
     public static LiveEvent simple(LiveEventType type, String userName) {
@@ -83,5 +90,11 @@ public record LiveEvent(
         }
         String withoutControls = value.replaceAll("[\\p{Cntrl}&&[^\\r\\n\\t]]", "").strip();
         return withoutControls.length() > 160 ? withoutControls.substring(0, 160) : withoutControls;
+    }
+
+    private static String cleanUrl(String value) {
+        if (value == null || value.isBlank()) return "";
+        String clean = value.replaceAll("[\\p{Cntrl}\\s]", "");
+        return clean.length() > 2_048 ? "" : clean;
     }
 }

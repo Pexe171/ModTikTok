@@ -38,4 +38,8 @@ public final class ActionSpec {
     public static ActionSpec simple(ActionType type) {
         return new ActionSpec(type, "", 1, 0, 0, 10, "");
     }
+
+    public ActionSpec copy() {
+        return new ActionSpec(type, target, amount, durationTicks, amplifier, radius, message);
+    }
 }

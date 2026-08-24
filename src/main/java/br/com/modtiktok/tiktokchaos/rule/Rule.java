@@ -13,7 +13,9 @@ public final class Rule {
     public RuleCondition condition = new RuleCondition();
     public long cooldownMillis = 0;
     public long perUserCooldownMillis = 0;
+    public ExecutionSpec execution = new ExecutionSpec();
     public List<ActionSpec> actions = new ArrayList<>();
+    public List<SequenceStep> sequence = new ArrayList<>();
 
     public Rule() {
     }

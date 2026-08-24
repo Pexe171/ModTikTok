@@ -98,14 +98,17 @@ public final class TikTokLiveService implements AutoCloseable {
                     })
                     .onLike((liveClient, event) -> eventSink.accept(new LiveEvent(
                             headerId(event), LiveEventType.LIKE, eventTime(event), userId(event.getUser()),
-                            userName(event.getUser()), event.getLikes(), event.getTotalLikes(), -1, "", 0, "")))
+                            userName(event.getUser()), event.getLikes(), event.getTotalLikes(), -1, "", 0, "",
+                            avatarUrl(event.getUser()))))
                     .onGift((liveClient, event) -> eventSink.accept(new LiveEvent(
                             headerId(event), LiveEventType.GIFT, eventTime(event), userId(event.getUser()),
                             userName(event.getUser()), Math.max(1, event.getCombo()), 0, event.getGift().getId(),
-                            event.getGift().getName(), event.getGift().getDiamondCost() * Math.max(1, event.getCombo()), "")))
+                            event.getGift().getName(), event.getGift().getDiamondCost() * Math.max(1, event.getCombo()),
+                            "", avatarUrl(event.getUser()))))
                     .onComment((liveClient, event) -> eventSink.accept(new LiveEvent(
                             headerId(event), LiveEventType.COMMENT, eventTime(event), userId(event.getUser()),
-                            userName(event.getUser()), 1, 0, -1, "", 0, event.getText())))
+                            userName(event.getUser()), 1, 0, -1, "", 0, event.getText(),
+                            avatarUrl(event.getUser()))))
                     .onFollow((liveClient, event) -> eventSink.accept(socialEvent(
                             LiveEventType.FOLLOW, event, event.getUser(), 1, event.getTotalFollowers())))
                     .onShare((liveClient, event) -> eventSink.accept(socialEvent(
@@ -171,7 +174,7 @@ public final class TikTokLiveService implements AutoCloseable {
 
     private LiveEvent socialEvent(LiveEventType type, TikTokHeaderEvent header, User user, int amount, int total) {
         return new LiveEvent(headerId(header), type, eventTime(header), userId(user), userName(user), amount, total,
-                -1, "", 0, "");
+                -1, "", 0, "", avatarUrl(user));
     }
 
     private LiveEvent controlEvent(LiveEventType type) {
@@ -197,6 +200,11 @@ public final class TikTokLiveService implements AutoCloseable {
         if (user == null) return "Anônimo";
         if (user.getProfileName() != null && !user.getProfileName().isBlank()) return user.getProfileName();
         return user.getName();
+    }
+
+    private static String avatarUrl(User user) {
+        if (user == null || user.getPicture() == null || user.getPicture().getLink() == null) return "";
+        return user.getPicture().getLink();
     }
 
     private static String normalizeUsername(String value) {

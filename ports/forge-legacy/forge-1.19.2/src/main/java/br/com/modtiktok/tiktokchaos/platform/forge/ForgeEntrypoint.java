@@ -19,7 +19,10 @@ public final class ForgeEntrypoint {
     public ForgeEntrypoint() {
         TikTokChaosMod.initialize(FMLPaths.CONFIGDIR.get());
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
-        modBus.addListener((RegisterKeyMappingsEvent event) -> event.register(ClientEvents.openMenuMapping()));
+        modBus.addListener((RegisterKeyMappingsEvent event) -> {
+            event.register(ClientEvents.openMenuMapping());
+            event.register(ClientEvents.emergencyStopMapping());
+        });
         modBus.addListener((RegisterGuiOverlaysEvent event) ->
                 event.registerAboveAll("hud", (gui, poseStack, partialTick, width, height) ->
                         ClientEvents.renderHud(poseStack)));

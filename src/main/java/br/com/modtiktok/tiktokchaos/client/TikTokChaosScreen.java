@@ -2,9 +2,13 @@ package br.com.modtiktok.tiktokchaos.client;
 
 import br.com.modtiktok.tiktokchaos.TikTokChaosMod;
 import br.com.modtiktok.tiktokchaos.TikTokChaosRuntime;
+import br.com.modtiktok.tiktokchaos.analytics.SessionStats;
 import br.com.modtiktok.tiktokchaos.config.TikTokChaosConfig;
 import br.com.modtiktok.tiktokchaos.live.LiveEvent;
 import br.com.modtiktok.tiktokchaos.live.LiveEventType;
+import br.com.modtiktok.tiktokchaos.preset.PresetApplyMode;
+import br.com.modtiktok.tiktokchaos.preset.PresetDocument;
+import br.com.modtiktok.tiktokchaos.preset.PresetPreview;
 import br.com.modtiktok.tiktokchaos.rule.Rule;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,6 +27,9 @@ public final class TikTokChaosScreen extends Screen {
     private Tab tab = Tab.CONNECTION;
     private EditBox usernameField;
     private int rulePage;
+    private int presetPage;
+    private String selectedPresetId = "survival-chaos";
+    private boolean destructiveConfirmationPending;
 
     public TikTokChaosScreen(Screen parent) {
         super(Component.translatable("gui.tiktokchaos.title"));
@@ -47,6 +54,8 @@ public final class TikTokChaosScreen extends Screen {
             case HISTORY -> initHistory(left, top);
             case SAFETY -> initSafety(left, top);
             case SIMULATOR -> initSimulator(left, top);
+            case PRESETS -> initPresets(left, top);
+            case SESSION -> initSession(left, top);
         }
 
         addRenderableWidget(Button.builder(Component.translatable("gui.tiktokchaos.close"), button -> onClose())
@@ -82,6 +91,11 @@ public final class TikTokChaosScreen extends Screen {
             runtime.config().connection.autoReconnect = !runtime.config().connection.autoReconnect;
             rebuildScreen();
         }).bounds(left + 252, top + 112, 160, 22).build());
+
+        addRenderableWidget(Button.builder(runStateLabel(), button -> {
+            if (runtime.areActionsPaused()) runtime.resumeActions(); else runtime.pauseActions();
+            rebuildScreen();
+        }).bounds(left + 18, top + 142, 194, 22).build());
     }
 
     private void initRules(int left, int top) {
@@ -125,6 +139,12 @@ public final class TikTokChaosScreen extends Screen {
     private void initHistory(int left, int top) {
         addRenderableWidget(Button.builder(Component.literal("Limpar fila"), button -> TikTokChaosMod.runtime().clearQueue())
                 .bounds(left + 18, top + 212, 96, 20).build());
+        addRenderableWidget(Button.builder(Component.literal((TikTokChaosMod.runtime().config().hud.showChat
+                ? "✓ " : "✕ ") + "Chat no HUD"), button -> {
+            TikTokChaosMod.runtime().config().hud.showChat = !TikTokChaosMod.runtime().config().hud.showChat;
+            TikTokChaosMod.runtime().saveConfig();
+            rebuildScreen();
+        }).bounds(left + 122, top + 212, 126, 20).build());
     }
 
     private void initSafety(int left, int top) {
@@ -140,6 +160,27 @@ public final class TikTokChaosScreen extends Screen {
             TikTokChaosMod.runtime().saveConfig();
             rebuildScreen();
         }).bounds(left + 18, top + 184, 180, 21).build());
+        addRenderableWidget(Button.builder(adaptivePerformanceLabel(), button -> {
+            safety.adaptivePerformance = !safety.adaptivePerformance;
+            TikTokChaosMod.runtime().saveConfig();
+            rebuildScreen();
+        }).bounds(left + 206, top + 184, 206, 21).build());
+        addRenderableWidget(Button.builder(destructiveActionsLabel(), button -> {
+            if (safety.destructiveActionsEnabled) {
+                safety.destructiveActionsEnabled = false;
+                safety.destructiveActionsConfirmed = false;
+                destructiveConfirmationPending = false;
+                TikTokChaosMod.runtime().saveConfig();
+            } else if (destructiveConfirmationPending) {
+                safety.destructiveActionsEnabled = true;
+                safety.destructiveActionsConfirmed = true;
+                destructiveConfirmationPending = false;
+                TikTokChaosMod.runtime().saveConfig();
+            } else {
+                destructiveConfirmationPending = true;
+            }
+            rebuildScreen();
+        }).bounds(left + 18, top + 212, 300, 20).build());
     }
 
     private void initSimulator(int left, int top) {
@@ -157,6 +198,90 @@ public final class TikTokChaosScreen extends Screen {
             button.active = TikTokChaosMod.runtime().isWorldActive();
             addRenderableWidget(button);
         }
+        addRenderableWidget(Button.builder(Component.literal("Abrir simulador detalhado"), button -> {
+            if (minecraft != null) minecraft.setScreen(new SimulatorScreen(this));
+        }).bounds(left + 18, top + 204, 190, 20).build());
+    }
+
+    private void initPresets(int left, int top) {
+        TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
+        List<PresetDocument> presets = runtime.presetCatalog();
+        int pageCount = Math.max(1, (presets.size() + 3) / 4);
+        presetPage = Math.max(0, Math.min(presetPage, pageCount - 1));
+        int first = presetPage * 4;
+        int last = Math.min(presets.size(), first + 4);
+        for (int index = first; index < last; index++) {
+            PresetDocument preset = presets.get(index);
+            String prefix = preset.id.equals(selectedPresetId) ? "◆ " : "◇ ";
+            addRenderableWidget(Button.builder(Component.literal(prefix + trim(preset.name, 46)), button -> {
+                selectedPresetId = preset.id;
+                rebuildScreen();
+            }).bounds(left + 18, top + 70 + (index - first) * 22, PANEL_WIDTH - 36, 20).build());
+        }
+        if (pageCount > 1) {
+            Button previous = Button.builder(Component.literal("‹"), button -> {
+                presetPage--;
+                rebuildScreen();
+            }).bounds(left + 18, top + 160, 28, 20).build();
+            previous.active = presetPage > 0;
+            addRenderableWidget(previous);
+            Button next = Button.builder(Component.literal("›"), button -> {
+                presetPage++;
+                rebuildScreen();
+            }).bounds(left + 50, top + 160, 28, 20).build();
+            next.active = presetPage + 1 < pageCount;
+            addRenderableWidget(next);
+        }
+        addRenderableWidget(Button.builder(Component.literal("Substituir"), button -> {
+            runtime.applyPreset(selectedPresetId, PresetApplyMode.REPLACE);
+            rebuildScreen();
+        }).bounds(left + 92, top + 160, 126, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Mesclar"), button -> {
+            runtime.applyPreset(selectedPresetId, PresetApplyMode.MERGE);
+            rebuildScreen();
+        }).bounds(left + 224, top + 160, 92, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Exportar atual"), button -> {
+            runtime.exportPreset();
+            rebuildScreen();
+        }).bounds(left + 18, top + 188, 132, 20).build());
+    }
+
+    private void initSession(int left, int top) {
+        TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
+        addRenderableWidget(Button.builder(Component.literal((runtime.config().overlay.enabled ? "✓ " : "✕ ")
+                + "Overlay OBS local"), button -> {
+            runtime.config().overlay.enabled = !runtime.config().overlay.enabled;
+            runtime.saveConfig();
+            rebuildScreen();
+        }).bounds(left + 250, top + 148, 162, 20).build());
+        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.showGoals ? "✓ " : "✕ ")
+                + "Metas no HUD"), button -> {
+            runtime.config().hud.showGoals = !runtime.config().hud.showGoals;
+            runtime.saveConfig();
+            rebuildScreen();
+        }).bounds(left + 18, top + 178, 120, 20).build());
+        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.showRanking ? "✓ " : "✕ ")
+                + "Ranking no HUD"), button -> {
+            runtime.config().hud.showRanking = !runtime.config().hud.showRanking;
+            runtime.saveConfig();
+            rebuildScreen();
+        }).bounds(left + 146, top + 178, 126, 20).build());
+        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.hideViewerNames ? "✓ " : "✕ ")
+                + "Ocultar nomes"), button -> {
+            runtime.config().hud.hideViewerNames = !runtime.config().hud.hideViewerNames;
+            runtime.saveConfig();
+            rebuildScreen();
+        }).bounds(left + 280, top + 178, 132, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Zerar sessão"), button -> {
+            runtime.resetSessionStats();
+            rebuildScreen();
+        }).bounds(left + 18, top + 204, 110, 20).build());
+        addRenderableWidget(Button.builder(Component.literal((runtime.config().avatars.enabled ? "✓ " : "✕ ")
+                + "Avatares temporários"), button -> {
+            runtime.config().avatars.enabled = !runtime.config().avatars.enabled;
+            runtime.saveConfig();
+            rebuildScreen();
+        }).bounds(left + 136, top + 204, 204, 20).build());
     }
 
     private void addCounter(int left, int y, String label, IntGetter getter, IntSetter setter) {
@@ -197,6 +322,8 @@ public final class TikTokChaosScreen extends Screen {
             case HISTORY -> renderHistory(graphics, left, top);
             case SAFETY -> renderSafety(graphics, left, top);
             case SIMULATOR -> renderSimulator(graphics, left, top);
+            case PRESETS -> renderPresets(graphics, left, top);
+            case SESSION -> renderSession(graphics, left, top);
         }
     }
 
@@ -205,12 +332,13 @@ public final class TikTokChaosScreen extends Screen {
         graphics.drawString(font, "Conta que está transmitindo", left + 18, top + 64, 0xFFCFC4D6, true);
         int color = runtime.status() == br.com.modtiktok.tiktokchaos.live.ConnectionStatus.CONNECTED
                 ? 0xFF66F0C8 : 0xFFFFC857;
-        graphics.drawString(font, "● " + runtime.status().label(), left + 18, top + 152, color, true);
-        graphics.drawString(font, trim(runtime.statusDetail(), 60), left + 18, top + 168, 0xFFCFC4D6, true);
+        graphics.drawString(font, "F9: parada de emergência + limpeza", left + 224, top + 149,
+                0xFFFF6B81, true);
+        graphics.drawString(font, "● " + runtime.status().label() + " • AÇÕES " + runtime.runState().label(),
+                left + 18, top + 176, color, true);
+        graphics.drawString(font, trim(runtime.statusDetail(), 60), left + 18, top + 192, 0xFFCFC4D6, true);
         String error = runtime.configManager().getLastError();
-        if (!error.isBlank()) graphics.drawString(font, trim(error, 60), left + 18, top + 188, 0xFFFF6B81, true);
-        graphics.drawString(font, "A integração é não oficial e pode exigir atualização futura.",
-                left + 18, top + 207, 0xFFB8AFC0, true);
+        if (!error.isBlank()) graphics.drawString(font, trim(error, 60), left + 18, top + 208, 0xFFFF6B81, true);
     }
 
     private void renderRules(GuiGraphics graphics, int left, int top) {
@@ -245,8 +373,49 @@ public final class TikTokChaosScreen extends Screen {
 
     private void renderSimulator(GuiGraphics graphics, int left, int top) {
         graphics.drawString(font, "Teste regras sem abrir uma LIVE", left + 18, top + 58, 0xFFBDB0C7, true);
-        graphics.drawString(font, "Os testes usam o mesmo pipeline e os mesmos limites dos eventos reais.",
-                left + 18, top + 210, 0xFFB8AFC0, true);
+        graphics.drawString(font, "Mesmo pipeline e limites reais.", left + 216, top + 210, 0xFFB8AFC0, true);
+    }
+
+    private void renderPresets(GuiGraphics graphics, int left, int top) {
+        TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
+        graphics.drawString(font, "Prévia antes de substituir ou mesclar", left + 18, top + 56,
+                0xFFBDB0C7, true);
+        try {
+            PresetPreview replace = runtime.previewPreset(selectedPresetId, PresetApplyMode.REPLACE);
+            String preview = replace.resultingRules() + " regras • " + replace.disabledRules()
+                    + " desativadas • backup automático";
+            graphics.drawString(font, preview, left + 158, top + 194, 0xFF66F0C8, true);
+        } catch (RuntimeException error) {
+            graphics.drawString(font, trim(error.getMessage(), 48), left + 158, top + 194, 0xFFFF6B81, true);
+        }
+        graphics.drawString(font, "Pasta: config/tiktok-chaos/presets", left + 18, top + 212,
+                0xFFB8AFC0, true);
+    }
+
+    private void renderSession(GuiGraphics graphics, int left, int top) {
+        SessionStats.Snapshot stats = TikTokChaosMod.runtime().sessionStats();
+        graphics.drawString(font, "ESTATÍSTICAS SOMENTE DESTA SESSÃO", left + 18, top + 56, 0xFF66F0C8, true);
+        graphics.drawString(font, "Moedas " + stats.coins() + " • presentes " + stats.gifts()
+                + " • curtidas " + stats.likes(), left + 18, top + 76, 0xFFE3D9EA, true);
+        graphics.drawString(font, "Ações: " + stats.executedActions() + " executadas • " + stats.failedActions()
+                + " falhas • " + stats.droppedActions() + " descartadas", left + 18, top + 92,
+                0xFFE3D9EA, true);
+        int y = top + 112;
+        for (int index = 0; index < Math.min(2, stats.goals().size()); index++) {
+            SessionStats.GoalProgress goal = stats.goals().get(index);
+            graphics.drawString(font, "Meta " + goal.name() + ": " + goal.current() + "/" + goal.target(),
+                    left + 18, y, goal.complete() ? 0xFF66F0C8 : 0xFFFFD166, true);
+            y += 14;
+        }
+        for (int index = 0; index < Math.min(2, stats.ranking().size()); index++) {
+            SessionStats.ViewerRank viewer = stats.ranking().get(index);
+            graphics.drawString(font, (index + 1) + ". " + trim(viewer.name(), 24) + " • " + viewer.coins()
+                    + " moedas • " + viewer.mobsDefeated() + " mobs", left + 220, top + 112 + index * 14,
+                    0xFFBDB0C7, true);
+        }
+        String overlay = TikTokChaosMod.runtime().overlayUrl();
+        graphics.drawString(font, overlay.isBlank() ? "Overlay OBS desligado" : "OBS: " + trim(overlay, 34),
+                left + 18, top + 154, overlay.isBlank() ? 0xFFB8AFC0 : 0xFF66F0C8, true);
     }
 
     private void drawCounter(GuiGraphics graphics, int left, int y, String label, int value) {
@@ -282,6 +451,31 @@ public final class TikTokChaosScreen extends Screen {
         boolean enabled = TikTokChaosMod.runtime().config().hud.enabled;
         return Component.literal((enabled ? "✓ " : "✕ ") + "HUD compacto")
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+    }
+
+    private Component runStateLabel() {
+        boolean paused = TikTokChaosMod.runtime().areActionsPaused();
+        return Component.literal(paused ? "▶ Retomar ações" : "Ⅱ Pausar ações")
+                .withStyle(paused ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
+    }
+
+    private Component adaptivePerformanceLabel() {
+        boolean enabled = TikTokChaosMod.runtime().config().safety.adaptivePerformance;
+        return Component.literal((enabled ? "✓ " : "✕ ") + "Proteção adaptativa de FPS")
+                .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+    }
+
+    private Component destructiveActionsLabel() {
+        TikTokChaosConfig.Safety safety = TikTokChaosMod.runtime().config().safety;
+        if (safety.destructiveActionsEnabled && safety.destructiveActionsConfirmed) {
+            return Component.literal("✓ Mundo reversível ativo • clique para desligar")
+                    .withStyle(ChatFormatting.RED);
+        }
+        if (destructiveConfirmationPending) {
+            return Component.literal("CONFIRMAR: alterar até " + safety.maxChangedBlocks + " blocos e restaurar")
+                    .withStyle(ChatFormatting.RED);
+        }
+        return Component.literal("✕ Ações que alteram blocos (desligadas)").withStyle(ChatFormatting.GRAY);
     }
 
     private Component ruleLabel(Rule rule) {
@@ -330,7 +524,9 @@ public final class TikTokChaosScreen extends Screen {
         RULES("Regras"),
         HISTORY("Histórico"),
         SAFETY("Segurança"),
-        SIMULATOR("Simulador");
+        SIMULATOR("Simulador"),
+        PRESETS("Presets"),
+        SESSION("Sessão");
 
         private final String label;
 

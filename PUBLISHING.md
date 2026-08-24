@@ -28,8 +28,8 @@ Never put the token in `gradle.properties`, a workflow file, a script, a commit,
 After committing and pushing the version, create a matching tag:
 
 ```bash
-git tag v1.3.0
-git push origin v1.3.0
+git tag v1.4.0
+git push origin v1.4.0
 ```
 
 Tags matching `v*` automatically run the same workflow with the `release` channel. The workflow refuses a tag whose version does not match `mod_version` in `gradle.properties`.

@@ -5,6 +5,9 @@ import br.com.modtiktok.tiktokchaos.gameplay.ActionTargets;
 import br.com.modtiktok.tiktokchaos.live.LiveEventType;
 import br.com.modtiktok.tiktokchaos.rule.ActionSpec;
 import br.com.modtiktok.tiktokchaos.rule.ActionType;
+import br.com.modtiktok.tiktokchaos.rule.ExecutionMode;
+import br.com.modtiktok.tiktokchaos.rule.ExecutionSpec;
+import br.com.modtiktok.tiktokchaos.rule.ExecutionTier;
 import br.com.modtiktok.tiktokchaos.rule.Rule;
 import br.com.modtiktok.tiktokchaos.rule.RuleCondition;
 import net.minecraft.ChatFormatting;
@@ -45,6 +48,7 @@ public final class RuleEditorScreen extends Screen {
         this.rule = rule;
         this.newRule = newRule;
         if (rule.condition == null) rule.condition = new RuleCondition();
+        if (rule.execution == null) rule.execution = new ExecutionSpec();
         if (rule.actions == null) rule.actions = new ArrayList<>();
         if (rule.actions.isEmpty()) rule.actions.add(ActionSpec.spawn("minecraft:zombie", 1));
     }
@@ -114,9 +118,12 @@ public final class RuleEditorScreen extends Screen {
             actionTargetField.setHint(Component.literal("minecraft:id"));
             addRenderableWidget(Button.builder(Component.literal("Escolher"), button -> openTargetPicker())
                     .bounds(fieldX + 136, top + 206, 74, 20).build());
-        } else if (action.type == ActionType.MESSAGE) {
+        } else if (action.type == ActionType.MESSAGE || action.type == ActionType.CENTER_MESSAGE) {
             actionTargetField = field(fieldX, top + 206, fieldWidth, action.message, 200);
             actionTargetField.setHint(Component.literal("Mensagem mostrada no jogo"));
+        } else if (action.type == ActionType.PLAY_SOUND) {
+            actionTargetField = field(fieldX, top + 206, fieldWidth, action.target, 128);
+            actionTargetField.setHint(Component.literal("minecraft:entity.experience_orb.pickup"));
         } else {
             actionTargetField = null;
         }
@@ -164,6 +171,20 @@ public final class RuleEditorScreen extends Screen {
         }).bounds(left + 168, top + 234, 70, 20).build();
         removeAction.active = rule.actions.size() > 1;
         addRenderableWidget(removeAction);
+        addRenderableWidget(Button.builder(executionLabel(), button -> {
+            persistFields(false);
+            ExecutionMode[] modes = ExecutionMode.values();
+            rule.execution.mode = modes[(rule.execution.mode.ordinal() + 1) % modes.length];
+            if (rule.execution.mode == ExecutionMode.TIERED && rule.execution.tiers.isEmpty()) {
+                rule.execution.tiers.add(new ExecutionTier(1, 0, 1, copyActions(rule.actions)));
+                rule.execution.tiers.add(new ExecutionTier(3, 0, 1, copyActions(rule.actions)));
+            }
+            rebuildScreen();
+        }).bounds(left + 250, top + 234, 96, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Sequência " + rule.sequence.size()), button -> {
+            persistFields(false);
+            if (minecraft != null) minecraft.setScreen(new SequenceEditorScreen(this, rule));
+        }).bounds(left + 350, top + 234, 96, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Salvar"), button -> save())
                 .bounds(left + 18, top + 272, 94, 22).build());
@@ -209,7 +230,7 @@ public final class RuleEditorScreen extends Screen {
         label(graphics, left, top + 212, targetLabel(action));
         graphics.drawString(font, "Ação " + (actionIndex + 1) + "/" + rule.actions.size()
                         + " • " + actionSummary(action),
-                left + 250, top + 240, 0xFFBDB0C7, true);
+                left + 250, top + 258, 0xFFBDB0C7, true);
         if (!validationMessage.isBlank()) {
             graphics.drawString(font, validationMessage, left + 222, top + 279, 0xFFFF6B81, true);
         }
@@ -241,7 +262,9 @@ public final class RuleEditorScreen extends Screen {
             rule.perUserCooldownMillis = Math.max(0, longValue(userCooldownField, 0)) * 1_000L;
             ActionSpec action = currentAction();
             if (actionTargetField != null) {
-                if (action.type == ActionType.MESSAGE) action.message = actionTargetField.getValue().strip();
+                if (action.type == ActionType.MESSAGE || action.type == ActionType.CENTER_MESSAGE) {
+                    action.message = actionTargetField.getValue().strip();
+                }
                 else action.target = actionTargetField.getValue().strip();
             }
             if (validate && rule.name.isBlank()) throw new IllegalArgumentException("Informe um nome");
@@ -260,9 +283,11 @@ public final class RuleEditorScreen extends Screen {
 
     private void applyTargetDefault(ActionSpec action) {
         action.target = switch (action.type) {
-            case SPAWN_ENTITY -> "minecraft:zombie";
+            case SPAWN_ENTITY, SPAWN_VIEWER_BOSS -> "minecraft:zombie";
             case GIVE_ITEM -> "minecraft:bread";
             case APPLY_EFFECT -> "minecraft:slowness";
+            case PLAY_SOUND -> "minecraft:entity.experience_orb.pickup";
+            case VISUAL_ITEM_RAIN, GIFT_CANNON -> "minecraft:diamond";
             default -> "";
         };
         if (action.type == ActionType.APPLY_EFFECT) {
@@ -272,8 +297,10 @@ public final class RuleEditorScreen extends Screen {
             action.radius = 10;
         } else if (action.type == ActionType.SET_WEATHER) {
             action.durationTicks = 600;
-        } else if (action.type == ActionType.MESSAGE) {
+        } else if (action.type == ActionType.MESSAGE || action.type == ActionType.CENTER_MESSAGE) {
             action.message = "";
+        } else if (action.type == ActionType.FREEZE_PLAYER) {
+            action.durationTicks = 100;
         }
     }
 
@@ -287,16 +314,18 @@ public final class RuleEditorScreen extends Screen {
 
     private VisualTargetCatalog.Kind pickerKind(ActionType type) {
         return switch (type) {
-            case SPAWN_ENTITY -> VisualTargetCatalog.Kind.ENTITY;
+            case SPAWN_ENTITY, SPAWN_VIEWER_BOSS -> VisualTargetCatalog.Kind.ENTITY;
             case GIVE_ITEM -> VisualTargetCatalog.Kind.ITEM;
             case APPLY_EFFECT -> VisualTargetCatalog.Kind.EFFECT;
+            case VISUAL_ITEM_RAIN, GIFT_CANNON -> VisualTargetCatalog.Kind.ITEM;
             default -> null;
         };
     }
 
     private boolean hasPrimaryCounter(ActionType type) {
         return switch (type) {
-            case SPAWN_ENTITY, GIVE_ITEM, APPLY_EFFECT, SHORT_TELEPORT, SET_WEATHER -> true;
+            case SPAWN_ENTITY, GIVE_ITEM, APPLY_EFFECT, SHORT_TELEPORT, SET_WEATHER, LAUNCH_PLAYER,
+                    FREEZE_PLAYER, PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN -> true;
             default -> false;
         };
     }
@@ -307,6 +336,9 @@ public final class RuleEditorScreen extends Screen {
             case APPLY_EFFECT -> action.amplifier = clamp(action.amplifier + direction, 0, 9);
             case SHORT_TELEPORT -> action.radius = clamp(action.radius + direction, 3, 64);
             case SET_WEATHER -> action.durationTicks = clamp(action.durationTicks + direction * 100, 100, 12_000);
+            case LAUNCH_PLAYER, PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN ->
+                    action.amount = clamp(action.amount + direction, 1, 20);
+            case FREEZE_PLAYER -> action.durationTicks = clamp(action.durationTicks + direction * 20, 20, 2_400);
             default -> {
             }
         }
@@ -318,6 +350,11 @@ public final class RuleEditorScreen extends Screen {
             case APPLY_EFFECT -> "Tipo / nível do efeito";
             case SHORT_TELEPORT -> "Tipo / raio em blocos";
             case SET_WEATHER -> "Tipo / duração";
+            case LAUNCH_PLAYER -> "Tipo / força";
+            case FREEZE_PLAYER -> "Tipo / duração";
+            case PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN -> "Tipo / quantidade";
+            case SPAWN_VIEWER_BOSS -> "Tipo / boss único";
+            case REVERSIBLE_BLOCK_BOX -> "Tipo / limite da Segurança";
             default -> "Tipo da ação";
         };
     }
@@ -325,9 +362,13 @@ public final class RuleEditorScreen extends Screen {
     private String targetLabel(ActionSpec action) {
         return switch (action.type) {
             case SPAWN_ENTITY -> "Mob / catálogo visual";
+            case SPAWN_VIEWER_BOSS -> "Mob do boss / catálogo";
             case GIVE_ITEM -> "Item / catálogo visual";
             case APPLY_EFFECT -> "Efeito / duração";
             case MESSAGE -> "Mensagem exibida";
+            case CENTER_MESSAGE -> "Mensagem central";
+            case PLAY_SOUND -> "ID do som";
+            case VISUAL_ITEM_RAIN, GIFT_CANNON -> "Item visual";
             default -> "Configuração automática";
         };
     }
@@ -345,6 +386,16 @@ public final class RuleEditorScreen extends Screen {
             case RANDOM_SAFE_ITEM -> "item seguro aleatório";
             case RANDOM_POSITIVE_EFFECT -> "efeito positivo aleatório";
             case RANDOM_NEGATIVE_EFFECT -> "efeito negativo aleatório";
+            case PLAY_SOUND -> action.target.isBlank() ? "som padrão" : trim(action.target, 24);
+            case LAUNCH_PLAYER -> "força " + action.amount;
+            case FREEZE_PLAYER -> Math.max(1, action.durationTicks / 20) + " segundos";
+            case PARTICLE_BURST -> (action.amount * 10) + " partículas";
+            case CENTER_MESSAGE -> action.message.isBlank() ? "mensagem central padrão" : trim(action.message, 24);
+            case VISUAL_ITEM_RAIN -> action.amount + " itens apenas visuais";
+            case GIFT_CANNON -> action.amount + " itens no canhão visual";
+            case LIKE_FOUNTAIN -> (action.amount * 10) + " corações visuais";
+            case SPAWN_VIEWER_BOSS -> "boss limitado com nome do espectador";
+            case REVERSIBLE_BLOCK_BOX -> "caixa com rollback automático";
         };
     }
 
@@ -367,6 +418,19 @@ public final class RuleEditorScreen extends Screen {
 
     private Component actionTypeLabel(ActionSpec action) {
         return Component.literal("Ação: " + actionName(action.type));
+    }
+
+    private Component executionLabel() {
+        return Component.literal("Combo: " + switch (rule.execution.mode) {
+            case PER_UNIT -> "por unidade";
+            case ONCE -> "uma vez";
+            case TIERED -> "maior faixa";
+            case SCALED -> "escala";
+        });
+    }
+
+    private List<ActionSpec> copyActions(List<ActionSpec> actions) {
+        return actions.stream().map(ActionSpec::copy).toList();
     }
 
     private String eventName(LiveEventType type) {
@@ -394,6 +458,16 @@ public final class RuleEditorScreen extends Screen {
             case RANDOM_SAFE_ITEM -> "Item aleatório";
             case RANDOM_POSITIVE_EFFECT -> "Efeito positivo";
             case RANDOM_NEGATIVE_EFFECT -> "Efeito negativo";
+            case PLAY_SOUND -> "Tocar som";
+            case LAUNCH_PLAYER -> "Lançar jogador";
+            case FREEZE_PLAYER -> "Congelar jogador";
+            case PARTICLE_BURST -> "Explosão de partículas";
+            case CENTER_MESSAGE -> "Mensagem central";
+            case VISUAL_ITEM_RAIN -> "Chuva visual de itens";
+            case GIFT_CANNON -> "Canhão de presentes";
+            case LIKE_FOUNTAIN -> "Fonte de curtidas";
+            case SPAWN_VIEWER_BOSS -> "Boss do espectador";
+            case REVERSIBLE_BLOCK_BOX -> "Caixa reversível";
         };
     }
 

@@ -1,6 +1,7 @@
 {
   "key.categories.tiktokchaos": "TikTok Chaos",
   "key.tiktokchaos.open_menu": "Abrir painel da LIVE",
+  "key.tiktokchaos.emergency_stop": "Parada de emergência e limpeza",
   "gui.tiktokchaos.title": "TikTok Chaos",
   "gui.tiktokchaos.username": "Usuário TikTok",
   "gui.tiktokchaos.connect": "Conectar",

@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 through 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge and NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 through 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-  <img alt="Version 1.3.0" src="https://img.shields.io/badge/version-1.3.0-E83E8C">
+  <img alt="Version 1.4.0" src="https://img.shields.io/badge/version-1.4.0-E83E8C">
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-66F0C8"></a>
 </p>
 
@@ -36,7 +36,9 @@ Everything is configured in Minecraft through the `F8` dashboard. No companion d
 - **Random mode:** choose `Aleatório (todos os mods)` / Random (all mods) to draw a new mob, item or effect on every activation.
 - **Real rule editor:** combine conditions, cooldowns, amounts and multiple actions without editing JSON by hand.
 - **Built for LIVE traffic:** bounded queues, rate limits, duplicate protection and cached registries keep event bursts controlled.
-- **Safe defaults:** temporary mobs, visual-only lightning, no execution of viewer text as commands and no deliberate block-breaking actions.
+- **Safe defaults:** global pause, `F9` emergency cleanup, temporary mobs, rollback, and world-editing actions disabled by default.
+- **Presets and combos:** local presets, four combo modes, declarative scaling, weighted roulette, and timed sequences.
+- **LIVE tools:** detailed simulator, session goals/ranking, and an optional local OBS overlay.
 
 ## How it works
 
@@ -56,10 +58,10 @@ Configurable rule engine ──► bounded priority queue
 Minecraft integrated server thread
         │
         ▼
-Mob, item, effect, teleport, weather or visual action
+Mob, item, effect, sequence, goal, weather or visual action
 ```
 
-The connector only receives public LIVE events. It does not log in to TikTok, post comments, control the account or open a local web server.
+The connector only receives public LIVE events. It does not log in to TikTok, post comments, or control the account. The optional OBS overlay opens a read-only HTTP page only on `127.0.0.1`, protected by a random session token.
 
 ## Visual rule editor
 
@@ -73,6 +75,10 @@ On Minecraft 1.20.1 and 1.21.1, open `F8` → **Rules** → **Edit** and select 
 | Short teleport | — | Radius |
 | Temporary weather | — | Duration |
 | Message | — | Custom text |
+| Sound, particles and centered message | ID/Text | Amount, duration and sequence |
+| Gift Cannon and Like Fountain | Item/— | Visual-only effect |
+| Viewer boss | Compatible mob | Separate boss cap |
+| Reversible box | — | Double confirmation, cap and rollback |
 
 Each gallery supports:
 
@@ -142,7 +148,7 @@ All builds are client-side, run against the integrated singleplayer server, and 
 
 ### Steps
 
-1. Download the `tiktok-chaos-1.3.0+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
+1. Download the `tiktok-chaos-1.4.0+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
 2. Put the JAR in the instance's `mods` folder.
 3. Start Minecraft and enter a singleplayer world.
 4. Press `F8`.
@@ -159,9 +165,11 @@ The full `F8` screen on 1.20.1 and 1.21.1 contains:
 - **Rules:** create, edit, pause and combine actions.
 - **History:** inspect recent LIVE events and executed actions.
 - **Safety:** configure action throughput, mob cap and mob lifetime.
-- **Simulator:** test rules without starting a real LIVE.
+- **Simulator:** quick or detailed tests with viewer, gift, unit coins, amount, likes and comment.
+- **Presets:** preview and apply by replace or merge, always with an automatic configuration backup.
+- **Session:** goals, ranking, name privacy, temporary avatars and the local OBS overlay.
 
-The compact HUD shows connection state, the latest event, queued actions and tracked temporary mobs.
+The compact HUD shows connection state, `ACTIVE/PAUSED`, latest event, queue and tracked mobs. Goal, ranking and chat widgets are optional.
 
 ## Safety model
 
@@ -169,9 +177,13 @@ The compact HUD shows connection state, the latest event, queued actions and tra
 - Only explicitly configured comment triggers are matched.
 - Spawned mobs have a configurable global cap and lifetime.
 - LIVE actions run through a bounded, rate-limited priority queue.
+- `F9` pauses actions, cancels pending sequences, removes temporary entities, and restores tracked effects, weather and reversible blocks.
+- Adaptive protection reduces action throughput when client ticks become slow.
 - Repeated/duplicate events are filtered.
 - Lightning created by the mod is visual only and cannot start fire or deal damage.
-- The mod does not deliberately change gamerules, clear inventories or run block-breaking actions.
+- The mod does not change gamerules or clear inventories. Its one block-editing action is reversible, disabled by default, double-confirmed, block-entity aware and bounded by change/restore limits.
+- Avatars are off by default, accept only allowlisted HTTPS hosts, enforce byte/dimension limits, and use a session cache that is erased on disconnect.
+- The OBS overlay is read-only, loopback-only, tokenized and protected by a strict content security policy.
 - Random pools are cached once, but all normal action limits still apply to every result.
 
 Random all-mod content can include intentionally chaotic items, effects or creatures supplied by the game or another mod. Back up valuable worlds before using broad random rules.
@@ -185,6 +197,8 @@ Settings and rules are stored in:
 ```
 
 The configuration is saved locally. LIVE event history is kept only in memory for the current Minecraft session.
+
+Imported/exported presets live in `config/tiktok-chaos/presets/`. The ten latest previous configurations are retained in `config/tiktok-chaos.json.backups/`.
 
 ## Troubleshooting
 

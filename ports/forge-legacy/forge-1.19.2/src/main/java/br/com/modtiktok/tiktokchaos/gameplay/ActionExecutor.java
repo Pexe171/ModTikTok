@@ -6,6 +6,7 @@ import br.com.modtiktok.tiktokchaos.rule.ActionSpec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -17,18 +18,27 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /** Gameplay implementation for Minecraft's pre-1.19.3 registry and teleport APIs. */
 public final class ActionExecutor {
@@ -43,6 +53,11 @@ public final class ActionExecutor {
     );
 
     private final Map<UUID, TrackedEntity> trackedEntities = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<MobEffect, EffectSnapshot>> trackedEffects = new ConcurrentHashMap<>();
+    private final Map<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, WeatherSnapshot>
+            trackedWeather = new ConcurrentHashMap<>();
+    private final Queue<String> defeatedViewers = new ConcurrentLinkedQueue<>();
+    private final Map<BlockChangeKey, BlockChange> blockChanges = new ConcurrentHashMap<>();
     private final Random random = new Random();
 
     public ExecutionResult execute(MinecraftServer server, UUID playerId, ActionRequest request,
@@ -64,6 +79,16 @@ public final class ActionExecutor {
                 case RANDOM_SAFE_ITEM -> randomItem(player);
                 case RANDOM_POSITIVE_EFFECT -> randomEffect(player, POSITIVE_EFFECTS, 200);
                 case RANDOM_NEGATIVE_EFFECT -> randomEffect(player, NEGATIVE_EFFECTS, 160);
+                case PLAY_SOUND -> playSound(level, player, action);
+                case LAUNCH_PLAYER -> launch(player, action);
+                case FREEZE_PLAYER -> freeze(player, action);
+                case PARTICLE_BURST -> particles(level, player, action);
+                case CENTER_MESSAGE -> centerMessage(player, request, action);
+                case VISUAL_ITEM_RAIN -> itemRain(level, player, action, safety);
+                case GIFT_CANNON -> giftCannon(level, player, action, safety);
+                case LIKE_FOUNTAIN -> likeFountain(level, player, action);
+                case SPAWN_VIEWER_BOSS -> spawnBoss(level, player, request, action, safety);
+                case REVERSIBLE_BLOCK_BOX -> reversibleBox(level, player, safety);
             };
             sendActionMessage(player, Component.literal("[TikTok] ").withStyle(ChatFormatting.LIGHT_PURPLE)
                     .append(Component.literal(request.event().userName() + " -> " + result)
@@ -82,21 +107,88 @@ public final class ActionExecutor {
             TrackedEntity tracked = entry.getValue();
             ServerLevel level = server.getLevel(tracked.dimension());
             Entity entity = level == null ? null : level.getEntity(entry.getKey());
-            if (entity == null || entity.isRemoved()) {
+            if (entity != null && !tracked.viewerName().isBlank() && !entity.isAlive()) {
+                defeatedViewers.offer(tracked.viewerName());
+                trackedEntities.remove(entry.getKey(), tracked);
+            } else if (entity == null || entity.isRemoved()) {
                 trackedEntities.remove(entry.getKey(), tracked);
             } else if (now >= tracked.removeAt()) {
                 entity.discard();
                 trackedEntities.remove(entry.getKey(), tracked);
             }
         }
+        restoreExpiredBlocks(server, now, false);
     }
 
     public int trackedCount() {
         return trackedEntities.size();
     }
 
+    public List<String> drainDefeatedViewers() {
+        List<String> result = new ArrayList<>();
+        String viewer;
+        while ((viewer = defeatedViewers.poll()) != null) result.add(viewer);
+        return List.copyOf(result);
+    }
+
+    public boolean isTargetAvailable(ActionSpec action) {
+        if (action == null || action.type == null) return false;
+        if (ActionTargets.isRandom(action.target)) return true;
+        ResourceLocation id = ResourceLocation.tryParse(action.target);
+        return switch (action.type) {
+            case SPAWN_ENTITY, SPAWN_VIEWER_BOSS -> id != null && Registry.ENTITY_TYPE.containsKey(id)
+                    && ActionTargets.isAllowedEntity(Registry.ENTITY_TYPE.get(id));
+            case GIVE_ITEM -> id != null && Registry.ITEM.containsKey(id) && Registry.ITEM.get(id) != Items.AIR;
+            case APPLY_EFFECT -> id != null && Registry.MOB_EFFECT.containsKey(id);
+            case PLAY_SOUND -> id != null && Registry.SOUND_EVENT.containsKey(id);
+            case VISUAL_ITEM_RAIN, GIFT_CANNON -> action.target.isBlank()
+                    || id != null && Registry.ITEM.containsKey(id);
+            default -> true;
+        };
+    }
+
     public void clearTracking() {
         trackedEntities.clear();
+        trackedEffects.clear();
+        trackedWeather.clear();
+        defeatedViewers.clear();
+        blockChanges.clear();
+    }
+
+    public void restoreAndRemove(MinecraftServer server) {
+        for (Map.Entry<UUID, TrackedEntity> entry : new ArrayList<>(trackedEntities.entrySet())) {
+            TrackedEntity tracked = entry.getValue();
+            ServerLevel level = server.getLevel(tracked.dimension());
+            Entity entity = level == null ? null : level.getEntity(entry.getKey());
+            if (entity != null && !entity.isRemoved()) entity.discard();
+        }
+        trackedEntities.clear();
+
+        for (Map.Entry<UUID, Map<MobEffect, EffectSnapshot>> playerEntry
+                : new ArrayList<>(trackedEffects.entrySet())) {
+            ServerPlayer player = server.getPlayerList().getPlayer(playerEntry.getKey());
+            if (player == null) continue;
+            for (Map.Entry<MobEffect, EffectSnapshot> effectEntry : playerEntry.getValue().entrySet()) {
+                player.removeEffect(effectEntry.getKey());
+                EffectSnapshot snapshot = effectEntry.getValue();
+                if (snapshot.previouslyActive()) {
+                    player.addEffect(new MobEffectInstance(effectEntry.getKey(), snapshot.durationTicks(),
+                            snapshot.amplifier()));
+                }
+            }
+        }
+        trackedEffects.clear();
+
+        for (Map.Entry<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, WeatherSnapshot> entry
+                : new ArrayList<>(trackedWeather.entrySet())) {
+            ServerLevel level = server.getLevel(entry.getKey());
+            if (level == null) continue;
+            WeatherSnapshot snapshot = entry.getValue();
+            level.setWeatherParameters(snapshot.raining() ? 0 : 20 * 60,
+                    snapshot.raining() ? 20 * 60 : 0, snapshot.raining(), snapshot.thundering());
+        }
+        trackedWeather.clear();
+        restoreExpiredBlocks(server, Long.MAX_VALUE, true);
     }
 
     private String spawn(ServerLevel level, ServerPlayer player, ActionRequest request, ActionSpec action,
@@ -125,7 +217,8 @@ public final class ActionExecutor {
             entity.setCustomName(Component.literal(request.event().userName()));
             if (level.addFreshEntity(entity)) {
                 trackedEntities.put(entity.getUUID(), new TrackedEntity(level.dimension(),
-                        System.currentTimeMillis() + safety.mobLifetimeSeconds * 1_000L));
+                        System.currentTimeMillis() + safety.mobLifetimeSeconds * 1_000L,
+                        request.event().userName(), false));
                 spawned++;
             }
         }
@@ -149,7 +242,7 @@ public final class ActionExecutor {
                 ? RandomActionTargets.effect(random)
                 : effectById(action.target);
         if (effect == null) throw new IllegalArgumentException("Efeito invalido: " + action.target);
-        player.addEffect(new MobEffectInstance(effect, Math.max(20, action.durationTicks), action.amplifier));
+        applyTrackedEffect(player, effect, Math.max(20, action.durationTicks), action.amplifier);
         ResourceLocation effectId = Registry.MOB_EFFECT.getKey(effect);
         return "efeito " + (effectId == null ? effect.getDisplayName().getString() : effectId.getPath());
     }
@@ -174,6 +267,7 @@ public final class ActionExecutor {
 
     private String weather(ServerLevel level, ActionSpec action) {
         int duration = action.durationTicks > 0 ? action.durationTicks : 20 * 30;
+        trackedWeather.putIfAbsent(level.dimension(), new WeatherSnapshot(level.isRaining(), level.isThundering()));
         level.setWeatherParameters(0, duration, true, false);
         return "chuva temporaria";
     }
@@ -194,8 +288,155 @@ public final class ActionExecutor {
 
     private String randomEffect(ServerPlayer player, List<MobEffect> effects, int ticks) {
         MobEffect effect = effects.get(random.nextInt(effects.size()));
-        player.addEffect(new MobEffectInstance(effect, ticks, 0));
+        applyTrackedEffect(player, effect, ticks, 0);
         return "efeito surpresa";
+    }
+
+    private String playSound(ServerLevel level, ServerPlayer player, ActionSpec action) {
+        ResourceLocation id = ResourceLocation.tryParse(action.target);
+        SoundEvent sound = id == null ? null : Registry.SOUND_EVENT.get(id);
+        if (sound == null) throw new IllegalArgumentException("Som invalido: " + action.target);
+        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0F, 1.0F);
+        return "som " + id.getPath();
+    }
+
+    private String launch(ServerPlayer player, ActionSpec action) {
+        double strength = Math.max(0.4, Math.min(2.0, action.amount * 0.2));
+        player.setDeltaMovement(player.getDeltaMovement().add(0.0, strength, 0.0));
+        player.hurtMarked = true;
+        return "lancamento vertical seguro";
+    }
+
+    private String freeze(ServerPlayer player, ActionSpec action) {
+        int duration = action.durationTicks > 0 ? action.durationTicks : 100;
+        applyTrackedEffect(player, MobEffects.MOVEMENT_SLOWDOWN, duration, Math.max(4, action.amplifier));
+        return "congelamento por " + Math.max(1, duration / 20) + "s";
+    }
+
+    private String particles(ServerLevel level, ServerPlayer player, ActionSpec action) {
+        int count = Math.max(10, Math.min(100, action.amount * 10));
+        level.sendParticles(ParticleTypes.POOF, player.getX(), player.getY() + 1.0, player.getZ(), count,
+                0.8, 1.0, 0.8, 0.05);
+        return "explosao visual de particulas";
+    }
+
+    private String centerMessage(ServerPlayer player, ActionRequest request, ActionSpec action) {
+        String value = action.message.isBlank() ? request.ruleName() : action.message;
+        player.displayClientMessage(Component.literal(value), true);
+        return value;
+    }
+
+    private String itemRain(ServerLevel level, ServerPlayer player, ActionSpec action,
+                            TikTokChaosConfig.Safety safety) {
+        ResourceLocation id = ResourceLocation.tryParse(action.target);
+        Item item = ActionTargets.isRandom(action.target) || action.target.isBlank()
+                ? SAFE_RANDOM_ITEMS.get(random.nextInt(SAFE_RANDOM_ITEMS.size()))
+                : id == null ? Items.AIR : Registry.ITEM.get(id);
+        if (item == Items.AIR) throw new IllegalArgumentException("Item visual invalido: " + action.target);
+        int count = Math.max(1, Math.min(12, action.amount));
+        int spawned = 0;
+        for (int index = 0; index < count && trackedEntities.size() < safety.maxTrackedMobs; index++) {
+            ItemEntity entity = new ItemEntity(level, player.getX() + random.nextDouble() * 4 - 2,
+                    player.getY() + 3 + random.nextDouble() * 2, player.getZ() + random.nextDouble() * 4 - 2,
+                    new ItemStack(item, 1));
+            entity.setPickUpDelay(32_767);
+            entity.setDeltaMovement((random.nextDouble() - 0.5) * 0.12, 0.1, (random.nextDouble() - 0.5) * 0.12);
+            if (level.addFreshEntity(entity)) {
+                trackedEntities.put(entity.getUUID(), new TrackedEntity(level.dimension(),
+                        System.currentTimeMillis() + 5_000L, "", false));
+                spawned++;
+            }
+        }
+        return spawned + " itens visuais em chuva";
+    }
+
+    private String giftCannon(ServerLevel level, ServerPlayer player, ActionSpec action,
+                              TikTokChaosConfig.Safety safety) {
+        String result = itemRain(level, player, action, safety);
+        return "canhao visual: " + result;
+    }
+
+    private String likeFountain(ServerLevel level, ServerPlayer player, ActionSpec action) {
+        int count = Math.max(10, Math.min(100, action.amount * 10));
+        level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 0.2, player.getZ(), count,
+                1.2, 2.0, 1.2, 0.08);
+        return "fonte visual de " + count + " curtidas";
+    }
+
+    private String spawnBoss(ServerLevel level, ServerPlayer player, ActionRequest request, ActionSpec action,
+                             TikTokChaosConfig.Safety safety) {
+        long bosses = trackedEntities.values().stream().filter(TrackedEntity::boss).count();
+        if (bosses >= safety.maxViewerBosses) return "limite de bosses atingido";
+        ActionSpec single = action.copy();
+        single.amount = 1;
+        int before = trackedEntities.size();
+        String result = spawn(level, player, request, single, safety);
+        if (trackedEntities.size() > before) {
+            trackedEntities.entrySet().stream()
+                    .filter(entry -> entry.getValue().viewerName().equals(request.event().userName()))
+                    .max(Map.Entry.comparingByKey())
+                    .ifPresent(entry -> trackedEntities.put(entry.getKey(), new TrackedEntity(
+                            entry.getValue().dimension(), entry.getValue().removeAt(),
+                            entry.getValue().viewerName(), true)));
+        }
+        return "boss: " + result;
+    }
+
+    private String reversibleBox(ServerLevel level, ServerPlayer player, TikTokChaosConfig.Safety safety) {
+        if (!safety.destructiveActionsEnabled || !safety.destructiveActionsConfirmed) {
+            throw new IllegalStateException("Acoes no mundo exigem ativacao e confirmacao em Seguranca");
+        }
+        int radius = 3;
+        int changed = 0;
+        long restoreAt = System.currentTimeMillis() + safety.blockRestoreSeconds * 1_000L;
+        BlockState replacement = Blocks.GLASS.defaultBlockState();
+        BlockPos center = player.blockPosition();
+        outer:
+        for (int y = -1; y <= 3; y++) {
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    boolean shell = y == -1 || y == 3 || Math.abs(x) == radius || Math.abs(z) == radius;
+                    if (!shell) continue;
+                    BlockPos position = center.offset(x, y, z).immutable();
+                    if (level.getBlockEntity(position) != null) continue;
+                    if (!level.getEntities((Entity) null, new AABB(position), entity -> entity != player).isEmpty()) {
+                        continue;
+                    }
+                    BlockState original = level.getBlockState(position);
+                    if (original.getDestroySpeed(level, position) < 0 || original.is(replacement.getBlock())) continue;
+                    BlockChangeKey key = new BlockChangeKey(level.dimension(), position);
+                    blockChanges.compute(key, (ignored, existing) -> existing == null
+                            ? new BlockChange(original, replacement, restoreAt)
+                            : new BlockChange(existing.original(), replacement, Math.max(existing.restoreAt(), restoreAt)));
+                    level.setBlock(position, replacement, 3);
+                    if (++changed >= safety.maxChangedBlocks) break outer;
+                }
+            }
+        }
+        return changed + " blocos alterados com restauracao automatica";
+    }
+
+    private void restoreExpiredBlocks(MinecraftServer server, long now, boolean force) {
+        for (Map.Entry<BlockChangeKey, BlockChange> entry : new ArrayList<>(blockChanges.entrySet())) {
+            BlockChange change = entry.getValue();
+            if (!force && now < change.restoreAt()) continue;
+            ServerLevel level = server.getLevel(entry.getKey().dimension());
+            if (level != null && level.getBlockState(entry.getKey().position()).equals(change.replacement())) {
+                level.setBlock(entry.getKey().position(), change.original(), 3);
+            }
+            blockChanges.remove(entry.getKey(), change);
+        }
+    }
+
+    private void applyTrackedEffect(ServerPlayer player, MobEffect effect, int ticks, int amplifier) {
+        trackedEffects.computeIfAbsent(player.getUUID(), ignored -> new ConcurrentHashMap<>())
+                .computeIfAbsent(effect, ignored -> {
+                    MobEffectInstance current = player.getEffect(effect);
+                    return current == null
+                            ? new EffectSnapshot(false, 0, 0)
+                            : new EffectSnapshot(true, current.getDuration(), current.getAmplifier());
+                });
+        player.addEffect(new MobEffectInstance(effect, ticks, amplifier));
     }
 
     private BlockPos findSafePosition(ServerLevel level, BlockPos origin, int minimumRadius, int maximumRadius) {
@@ -246,7 +487,20 @@ public final class ActionExecutor {
     }
 
     private record TrackedEntity(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
-                                 long removeAt) {
+                                 long removeAt, String viewerName, boolean boss) {
+    }
+
+    private record BlockChangeKey(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+                                  BlockPos position) {
+    }
+
+    private record BlockChange(BlockState original, BlockState replacement, long restoreAt) {
+    }
+
+    private record EffectSnapshot(boolean previouslyActive, int durationTicks, int amplifier) {
+    }
+
+    private record WeatherSnapshot(boolean raining, boolean thundering) {
     }
 
     public record ExecutionResult(boolean success, String message) {

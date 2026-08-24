@@ -18,7 +18,10 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class NeoForgeEntrypoint {
     public NeoForgeEntrypoint(IEventBus modBus, ModContainer container) {
         TikTokChaosMod.initialize(FMLPaths.CONFIGDIR.get());
-        modBus.addListener((RegisterKeyMappingsEvent event) -> event.register(ClientEvents.openMenuMapping()));
+        modBus.addListener((RegisterKeyMappingsEvent event) -> {
+            event.register(ClientEvents.openMenuMapping());
+            event.register(ClientEvents.emergencyStopMapping());
+        });
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> ClientEvents.clientTick());
         NeoForge.EVENT_BUS.addListener((RenderGuiEvent.Post event) ->
                 ClientEvents.renderHud(event.getGuiGraphics()));
