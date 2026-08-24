@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-and-build:
+  modern:
     name: Java 21 / Forge + NeoForge 1.21.1
     runs-on: ubuntu-latest
 
@@ -47,5 +47,57 @@ jobs:
             forge/build/libs/tiktok-chaos-*.jar
             !build/libs/*-thin.jar
             !forge/build/libs/*-thin.jar
+          if-no-files-found: error
+          retention-days: 14
+
+  legacy-forge:
+    name: Java 8/17 / Forge 1.16.5-1.20.1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+
+      - name: Remember Java 8 location
+        shell: bash
+        run: echo "JAVA_8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Validate Gradle wrappers
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Test and build legacy Forge JARs
+        shell: bash
+        run: |
+          chmod +x ports/forge-legacy/gradlew
+          ports/forge-legacy/gradlew -p ports/forge-legacy \
+            -Porg.gradle.java.installations.paths="$JAVA_8_HOME,$JAVA_HOME" \
+            :forge-1.16.5:test :forge-1.16.5:verifyJava8Bytecode \
+            :forge-1.18.2:test :forge-1.18.2:shadowJar \
+            :forge-1.19.2:test :forge-1.19.2:shadowJar \
+            :forge-1.20.1:test :forge-1.20.1:shadowJar \
+            --no-daemon
+
+      - name: Upload legacy Forge JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-chaos-legacy-forge-${{ github.sha }}
+          path: |
+            ports/forge-legacy/forge-1.16.5/build/libs/tiktok-chaos-*+mc1.16.5-forge.jar
+            ports/forge-legacy/forge-1.18.2/build/libs/tiktok-chaos-*+mc1.18.2-forge.jar
+            ports/forge-legacy/forge-1.19.2/build/libs/tiktok-chaos-*+mc1.19.2-forge.jar
+            ports/forge-legacy/forge-1.20.1/build/libs/tiktok-chaos-*+mc1.20.1-forge.jar
           if-no-files-found: error
           retention-days: 14

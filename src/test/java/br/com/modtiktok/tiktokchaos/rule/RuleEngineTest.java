@@ -36,7 +36,7 @@ class RuleEngineTest {
                 LiveEvent.gift("Ana", 777, "Especial", 120, 1), 2_000);
 
         assertEquals(1, actions.size());
-        assertEquals("gift_777", actions.getFirst().ruleId());
+        assertEquals("gift_777", actions.get(0).ruleId());
     }
 
     @Test

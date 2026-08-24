@@ -45,7 +45,7 @@ final class VisualTargetCatalog {
                 .comparing((Entry entry) -> !entry.id().startsWith("minecraft:"))
                 .thenComparing(Entry::name, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(Entry::id));
-        entries.addFirst(randomEntry(kind));
+        entries.add(0, randomEntry(kind));
         return List.copyOf(entries);
     }
 
@@ -126,7 +126,7 @@ final class VisualTargetCatalog {
         }
     }
 
-    record Entry(String id, String name, String searchText, ItemStack itemIcon, Holder<MobEffect> effectIcon) {
+    record Entry(String id, String name, String searchText, ItemStack itemIcon, Object effectIcon) {
         static Entry item(String id, String name, ItemStack icon) {
             return new Entry(id, name, normalize(name + " " + id), icon, null);
         }

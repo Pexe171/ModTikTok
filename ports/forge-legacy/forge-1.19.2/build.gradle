@@ -1,0 +1,19 @@
+plugins {
+    id 'java-library'
+    id 'net.minecraftforge.gradle'
+    id 'com.github.johnrengelman.shadow'
+}
+
+ext.portMinecraftVersion = '1.19.2'
+ext.portForgeVersion = '43.5.2'
+ext.portForgeRange = '[43.5.0,44)'
+ext.portLoaderRange = '[43,)'
+ext.portJavaVersion = 17
+ext.portPackFormat = 9
+ext.sharedSourceExclusions = [
+        'br/com/modtiktok/tiktokchaos/client/**',
+        'br/com/modtiktok/tiktokchaos/gameplay/ActionExecutor.java',
+        'br/com/modtiktok/tiktokchaos/gameplay/RandomActionTargets.java'
+]
+
+apply from: rootProject.file('forge-port.gradle')

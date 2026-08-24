@@ -1,0 +1,76 @@
+plugins {
+    id 'java-library'
+    id 'net.minecraftforge.gradle'
+    id 'com.github.johnrengelman.shadow'
+    id 'xyz.wagyourtail.jvmdowngrader'
+}
+
+ext.portMinecraftVersion = '1.16.5'
+ext.portForgeVersion = '36.2.42'
+ext.portForgeRange = '[36.2.34,37)'
+ext.portLoaderRange = '[36,)'
+// Compile the shared Java-language core first; the release JAR is downgraded to Java 8 later.
+ext.portJavaVersion = 17
+ext.useReleaseFlag = false
+ext.portPackFormat = 6
+ext.sharedSourceExclusions = [
+        'br/com/modtiktok/tiktokchaos/TikTokChaosMod.java',
+        'br/com/modtiktok/tiktokchaos/client/**',
+        'br/com/modtiktok/tiktokchaos/gameplay/**'
+]
+
+apply from: rootProject.file('forge-port.gradle')
+
+jvmdg.downgradeTo = JavaVersion.VERSION_1_8
+
+tasks.named('downgradeJar') {
+    dependsOn tasks.named('reobfShadowJar')
+    archiveClassifier = 'downgraded-8'
+}
+
+tasks.named('shadeDowngradedApi') {
+    dependsOn tasks.named('downgradeJar')
+    archiveClassifier = ''
+}
+
+def verifyJava8Bytecode = tasks.register('verifyJava8Bytecode') {
+    dependsOn tasks.named('shadeDowngradedApi')
+    def releaseJar = tasks.named('shadeDowngradedApi').flatMap { it.archiveFile }
+    inputs.file(releaseJar)
+    doLast {
+        def jarFile = releaseJar.get().asFile
+        int classCount = 0
+        def zip = new java.util.zip.ZipFile(jarFile)
+        try {
+            def entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (!entry.name.endsWith('.class')) continue
+                def input = zip.getInputStream(entry)
+                try {
+                    byte[] header = new byte[8]
+                    if (input.read(header) != 8) throw new GradleException("Invalid class header: ${entry.name}")
+                    int major = ((header[6] & 0xFF) << 8) | (header[7] & 0xFF)
+                    if (major > 52) {
+                        throw new GradleException("${entry.name} uses class major ${major}; Java 8 requires 52 or lower")
+                    }
+                    classCount++
+                } finally {
+                    input.close()
+                }
+            }
+        } finally {
+            zip.close()
+        }
+        if (classCount == 0) throw new GradleException('No class files found in the 1.16.5 release JAR')
+        logger.lifecycle("Verified ${classCount} Java 8-compatible classes in ${jarFile.name}")
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn verifyJava8Bytecode
+}
+
+tasks.named('build') {
+    dependsOn verifyJava8Bytecode
+}

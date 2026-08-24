@@ -22,6 +22,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.Heightmap;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,10 +36,10 @@ public final class ActionExecutor {
     private static final List<Item> SAFE_RANDOM_ITEMS = List.of(
             Items.BREAD, Items.COOKED_BEEF, Items.BAKED_POTATO, Items.TORCH, Items.ARROW, Items.IRON_INGOT
     );
-    private static final List<net.minecraft.core.Holder<MobEffect>> POSITIVE_EFFECTS = List.of(
+    private static final List<Object> POSITIVE_EFFECTS = List.of(
             MobEffects.REGENERATION, MobEffects.MOVEMENT_SPEED, MobEffects.DAMAGE_RESISTANCE, MobEffects.ABSORPTION
     );
-    private static final List<net.minecraft.core.Holder<MobEffect>> NEGATIVE_EFFECTS = List.of(
+    private static final List<Object> NEGATIVE_EFFECTS = List.of(
             MobEffects.MOVEMENT_SLOWDOWN, MobEffects.WEAKNESS, MobEffects.BLINDNESS, MobEffects.HUNGER
     );
 
@@ -148,13 +149,14 @@ public final class ActionExecutor {
     }
 
     private String applyEffect(ServerPlayer player, ActionSpec action) {
-        net.minecraft.core.Holder<MobEffect> effect = ActionTargets.isRandom(action.target)
+        Object effect = ActionTargets.isRandom(action.target)
                 ? RandomActionTargets.effect(random)
                 : effectById(action.target);
         if (effect == null) throw new IllegalArgumentException("Efeito inválido: " + action.target);
-        player.addEffect(new MobEffectInstance(effect, Math.max(20, action.durationTicks), action.amplifier));
-        ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(effect.value());
-        return "efeito " + (effectId == null ? effect.value().getDisplayName().getString() : effectId.getPath());
+        player.addEffect(createEffectInstance(effect, Math.max(20, action.durationTicks), action.amplifier));
+        MobEffect effectValue = unwrapEffect(effect);
+        ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(effectValue);
+        return "efeito " + (effectId == null ? effectValue.getDisplayName().getString() : effectId.getPath());
     }
 
     private String teleport(ServerLevel level, ServerPlayer player, ActionSpec action) {
@@ -195,10 +197,35 @@ public final class ActionExecutor {
         return amount + "x " + stack.getHoverName().getString();
     }
 
-    private String randomEffect(ServerPlayer player, List<net.minecraft.core.Holder<MobEffect>> effects, int ticks) {
-        net.minecraft.core.Holder<MobEffect> effect = effects.get(random.nextInt(effects.size()));
-        player.addEffect(new MobEffectInstance(effect, ticks, 0));
+    private String randomEffect(ServerPlayer player, List<Object> effects, int ticks) {
+        Object effect = effects.get(random.nextInt(effects.size()));
+        player.addEffect(createEffectInstance(effect, ticks, 0));
         return "efeito surpresa";
+    }
+
+    private MobEffectInstance createEffectInstance(Object effectReference, int ticks, int amplifier) {
+        MobEffect effect = unwrapEffect(effectReference);
+        for (Constructor<?> constructor : MobEffectInstance.class.getConstructors()) {
+            Class<?>[] parameters = constructor.getParameterTypes();
+            if (parameters.length < 3 || parameters[1] != int.class || parameters[2] != int.class) continue;
+            Object argument = parameters[0].isInstance(effectReference) ? effectReference
+                    : parameters[0].isInstance(effect) ? effect : null;
+            if (argument == null) continue;
+            try {
+                return (MobEffectInstance) constructor.newInstance(argument, ticks, amplifier);
+            } catch (ReflectiveOperationException exception) {
+                throw new IllegalStateException("Não foi possível criar o efeito", exception);
+            }
+        }
+        throw new IllegalStateException("API de efeitos não reconhecida");
+    }
+
+    @SuppressWarnings("unchecked")
+    private MobEffect unwrapEffect(Object effectReference) {
+        if (effectReference instanceof net.minecraft.core.Holder<?> holder) {
+            return ((net.minecraft.core.Holder<MobEffect>) holder).value();
+        }
+        return (MobEffect) effectReference;
     }
 
     private BlockPos findSafePosition(ServerLevel level, BlockPos origin, int minimumRadius, int maximumRadius) {

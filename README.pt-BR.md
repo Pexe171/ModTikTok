@@ -15,14 +15,14 @@
 
 <p align="center">
   <a href="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml"><img alt="Build" src="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml/badge.svg"></a>
-  <img alt="Minecraft 1.21.1" src="https://img.shields.io/badge/Minecraft-1.21.1-62B47A?logo=minecraft">
-  <img alt="Forge e NeoForge" src="https://img.shields.io/badge/Forge%20%7C%20NeoForge-52.1.x%20%7C%2021.1.x-EF6C35">
-  <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk">
-  <img alt="Versão 1.2.1" src="https://img.shields.io/badge/versão-1.2.1-E83E8C">
+  <img alt="Minecraft 1.16.5 até 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
+  <img alt="Forge e NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
+  <img alt="Java 8 até 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
+  <img alt="Versão 1.3.0" src="https://img.shields.io/badge/versão-1.3.0-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
-TikTok Chaos é um mod cliente para **Minecraft Java 1.21.1 + Forge ou NeoForge**. Ele se conecta a uma LIVE pública do TikTok pelo nome de usuário e transforma curtidas, presentes, comentários, follows, compartilhamentos e inscrições em regras executadas dentro de um mundo singleplayer.
+TikTok Chaos é um mod cliente para **Minecraft Java 1.16.5 até 1.21.1**. Há builds Forge para 1.16.5, 1.18.2, 1.19.2, 1.20.1 e 1.21.1; o NeoForge é compatível com 1.21.1. Ele se conecta a uma LIVE pública do TikTok pelo nome de usuário e transforma curtidas, presentes, comentários, follows, compartilhamentos e inscrições em regras executadas dentro de um mundo singleplayer.
 
 Tudo é configurado no próprio Minecraft pelo painel aberto com `F8`. Não é necessário instalar programa auxiliar, informar senha do TikTok, usar chave de API, contratar serviço pago ou instalar o JEI.
 
@@ -63,7 +63,7 @@ O conector recebe somente eventos de uma LIVE pública. Ele não entra na conta 
 
 ## Editor visual de regras
 
-Abra `F8` → **Regras** → **Editar** e selecione uma ação.
+No Minecraft 1.20.1 e 1.21.1, abra `F8` → **Regras** → **Editar** e selecione uma ação. Os ports 1.16.5–1.19.2 usam um painel compacto para conexão e simulação; as regras avançadas nessas versões continuam editáveis em `config/tiktok-chaos.json`.
 
 | Ação | Seleção visual | Controles extras |
 | --- | --- | --- |
@@ -104,6 +104,8 @@ O catálogo é criado somente quando necessário e fica em cache. Apenas os cart
 | Estatísticas da sala | Quantidade de espectadores |
 | Início/fim da LIVE | Estado da transmissão |
 
+A quantidade recebida no presente repete o conjunto inteiro de ações configuradas. Por exemplo: se uma rosa invoca um zumbi, um evento do TikTok com `amount = 3` coloca três ações de zumbi na fila (respeitando `maxTriggersPerEvent`).
+
 ## Regras iniciais incluídas
 
 | Interação | Ação padrão no Minecraft |
@@ -127,17 +129,20 @@ Essas regras são exemplos editáveis, não comportamentos fixos. Elas podem ser
 
 ### Requisitos
 
-| Componente | Versão necessária |
-| --- | --- |
-| Minecraft Java | `1.21.1` |
-| Mod loader | Forge `52.1.0+` da linha `52.x`, ou NeoForge `21.1.133+` da linha `21.1.x` |
-| Java | 21 |
-| Ambiente | Cliente, servidor integrado singleplayer |
-| Mods auxiliares obrigatórios | Nenhum |
+| Minecraft | Loader | Versão do loader | Java |
+| --- | --- | --- | --- |
+| `1.16.5` | Forge | `36.2.34+`, abaixo da `37` | 8 |
+| `1.18.2` | Forge | `40.3.0+`, abaixo da `41` | 17 |
+| `1.19.2` | Forge | `43.5.0+`, abaixo da `44` | 17 |
+| `1.20.1` | Forge | `47.4.10+`, abaixo da `48` | 17 |
+| `1.21.1` | Forge | `52.1.0+`, abaixo da `53` | 21 |
+| `1.21.1` | NeoForge | `21.1.133+`, na linha `21.1.x` | 21 |
+
+Todas as builds são client-side, funcionam no servidor integrado singleplayer e não exigem mod auxiliar.
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.2.1+mc1.21.1-forge.jar` ou `tiktok-chaos-1.2.1+mc1.21.1-neoforge.jar`, conforme o loader da sua instância.
+1. Baixe `tiktok-chaos-1.3.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.
@@ -148,7 +153,7 @@ A pessoa precisa estar transmitindo naquele momento e a LIVE precisa ser públic
 
 ## Painel do mod
 
-A tela `F8` possui:
+A tela `F8` completa das versões 1.20.1 e 1.21.1 possui:
 
 - **Conexão:** usuário, estado da conexão e reconexão automática.
 - **Regras:** criação, edição, pausa e combinação de ações.
@@ -193,7 +198,7 @@ Transmissões muito grandes podem agrupar ou omitir eventos individuais de curti
 
 ## Compilar o código-fonte
 
-Clone o repositório e use o JDK 21:
+Clone o repositório e use o JDK 21 para compilar os alvos 1.21.1:
 
 ```powershell
 git clone https://github.com/Pexe171/ModTikTok.git
@@ -210,6 +215,18 @@ Linux/macOS:
 
 O distribuível NeoForge será criado em `build/libs/`; o Forge ficará em `forge/build/libs/`. Use os JARs sem o classificador `thin`.
 
+As builds Forge legadas usam um wrapper Gradle 8.8 separado e precisam dos toolchains JDK 8 e JDK 17 instalados:
+
+```powershell
+.\ports\forge-legacy\gradlew.bat -p ports\forge-legacy `
+  :forge-1.16.5:test :forge-1.16.5:verifyJava8Bytecode `
+  :forge-1.18.2:test :forge-1.18.2:shadowJar `
+  :forge-1.19.2:test :forge-1.19.2:shadowJar `
+  :forge-1.20.1:test :forge-1.20.1:shadowJar
+```
+
+Os JARs distribuíveis são criados em `ports/forge-legacy/forge-<versão-do-minecraft>/build/libs/`.
+
 ## Documentos do projeto
 
 - [English](./README.md)
@@ -224,6 +241,6 @@ O distribuível NeoForge será criado em `build/libs/`; o Forge ficará em `forg
 
 **Idealizado e desenvolvido por [Pexe171](https://github.com/Pexe171).**
 
-TikTok Chaos incorpora o conector comunitário [TikTokLiveJava](https://github.com/jwdeveloper/TikTok-Live-Java) e os componentes necessários em tempo de execução. As atribuições completas estão nos avisos de terceiros presentes no código-fonte e dentro do JAR.
+TikTok Chaos incorpora o conector comunitário [TikTokLiveJava](https://github.com/jwdeveloper/TikTok-Live-Java) e os componentes necessários em tempo de execução. A build 1.16.5 usa o [JvmDowngrader](https://github.com/unimined/JvmDowngrader) para continuar compatível com Java 8. As atribuições completas estão nos avisos de terceiros presentes no código-fonte e dentro do JAR.
 
 Distribuído sob a [Licença MIT](./LICENSE).

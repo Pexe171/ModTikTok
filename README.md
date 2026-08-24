@@ -15,14 +15,14 @@
 
 <p align="center">
   <a href="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml"><img alt="Build" src="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml/badge.svg"></a>
-  <img alt="Minecraft 1.21.1" src="https://img.shields.io/badge/Minecraft-1.21.1-62B47A?logo=minecraft">
-  <img alt="Forge and NeoForge" src="https://img.shields.io/badge/Forge%20%7C%20NeoForge-52.1.x%20%7C%2021.1.x-EF6C35">
-  <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk">
-  <img alt="Version 1.2.1" src="https://img.shields.io/badge/version-1.2.1-E83E8C">
+  <img alt="Minecraft 1.16.5 through 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
+  <img alt="Forge and NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
+  <img alt="Java 8 through 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
+  <img alt="Version 1.3.0" src="https://img.shields.io/badge/version-1.3.0-E83E8C">
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-66F0C8"></a>
 </p>
 
-TikTok Chaos is a client-side mod for **Minecraft Java 1.21.1 + Forge or NeoForge**. It connects to a public TikTok LIVE by username and turns likes, gifts, comments, follows, shares and subscriptions into rules that run inside a singleplayer world.
+TikTok Chaos is a client-side mod for **Minecraft Java 1.16.5 through 1.21.1**. Forge builds cover 1.16.5, 1.18.2, 1.19.2, 1.20.1, and 1.21.1; NeoForge is supported on 1.21.1. It connects to a public TikTok LIVE by username and turns likes, gifts, comments, follows, shares and subscriptions into rules that run inside a singleplayer world.
 
 Everything is configured in Minecraft through the `F8` dashboard. No companion desktop app, TikTok password, API key, paid service or JEI installation is required.
 
@@ -63,7 +63,7 @@ The connector only receives public LIVE events. It does not log in to TikTok, po
 
 ## Visual rule editor
 
-Open `F8` → **Rules** → **Edit** and select an action.
+On Minecraft 1.20.1 and 1.21.1, open `F8` → **Rules** → **Edit** and select an action. The 1.16.5–1.19.2 ports use a compact dashboard for connection and simulation; advanced rules on those versions remain editable in `config/tiktok-chaos.json`.
 
 | Action | Visual selection | Extra controls |
 | --- | --- | --- |
@@ -104,6 +104,8 @@ The catalog is built lazily and cached. Only visible cards are rendered each fra
 | Room statistics | Viewer count |
 | LIVE start/end | Broadcast state |
 
+Gift repeat count is applied to the whole configured action set. For example, if one rose triggers one zombie, a TikTok event with `amount = 3` queues three zombie actions (up to `maxTriggersPerEvent`).
+
 ## Included starter rules
 
 | Interaction | Default Minecraft action |
@@ -127,17 +129,20 @@ These are editable examples, not hard-coded behavior. They can be paused, change
 
 ### Requirements
 
-| Component | Required version |
-| --- | --- |
-| Minecraft Java | `1.21.1` |
-| Mod loader | Forge `52.1.0+` in the `52.x` line, or NeoForge `21.1.133+` in the `21.1.x` line |
-| Java | 21 |
-| Environment | Client, singleplayer integrated server |
-| Required companion mods | None |
+| Minecraft | Loader | Loader version | Java |
+| --- | --- | --- | --- |
+| `1.16.5` | Forge | `36.2.34+`, below `37` | 8 |
+| `1.18.2` | Forge | `40.3.0+`, below `41` | 17 |
+| `1.19.2` | Forge | `43.5.0+`, below `44` | 17 |
+| `1.20.1` | Forge | `47.4.10+`, below `48` | 17 |
+| `1.21.1` | Forge | `52.1.0+`, below `53` | 21 |
+| `1.21.1` | NeoForge | `21.1.133+`, in the `21.1.x` line | 21 |
+
+All builds are client-side, run against the integrated singleplayer server, and require no companion mod.
 
 ### Steps
 
-1. Download the `tiktok-chaos-1.2.1+mc1.21.1-forge.jar` or `tiktok-chaos-1.2.1+mc1.21.1-neoforge.jar` file matching your loader.
+1. Download the `tiktok-chaos-1.3.0+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
 2. Put the JAR in the instance's `mods` folder.
 3. Start Minecraft and enter a singleplayer world.
 4. Press `F8`.
@@ -148,7 +153,7 @@ The creator must currently be LIVE and the broadcast must be public. Private, ag
 
 ## Dashboard
 
-The `F8` screen contains:
+The full `F8` screen on 1.20.1 and 1.21.1 contains:
 
 - **Connection:** username, connection status and automatic reconnect.
 - **Rules:** create, edit, pause and combine actions.
@@ -193,7 +198,7 @@ Large broadcasts may aggregate or omit individual like events. Network, regional
 
 ## Build from source
 
-Clone the repository and build with JDK 21:
+Clone the repository and build the 1.21.1 targets with JDK 21:
 
 ```powershell
 git clone https://github.com/Pexe171/ModTikTok.git
@@ -210,6 +215,18 @@ Linux/macOS:
 
 The NeoForge distributable is generated in `build/libs/`; the Forge distributable is generated in `forge/build/libs/`. Use the JARs without the `thin` classifier.
 
+Legacy Forge builds use their own Gradle 8.8 wrapper and require installed JDK 8 and JDK 17 toolchains:
+
+```powershell
+.\ports\forge-legacy\gradlew.bat -p ports\forge-legacy `
+  :forge-1.16.5:test :forge-1.16.5:verifyJava8Bytecode `
+  :forge-1.18.2:test :forge-1.18.2:shadowJar `
+  :forge-1.19.2:test :forge-1.19.2:shadowJar `
+  :forge-1.20.1:test :forge-1.20.1:shadowJar
+```
+
+Their distributable JARs are generated under `ports/forge-legacy/forge-<minecraft-version>/build/libs/`.
+
 ## Project documents
 
 - [Português (Brasil)](./README.pt-BR.md)
@@ -224,6 +241,6 @@ The NeoForge distributable is generated in `build/libs/`; the Forge distributabl
 
 **Designed and coded by [Pexe171](https://github.com/Pexe171).**
 
-TikTok Chaos bundles the community [TikTokLiveJava](https://github.com/jwdeveloper/TikTok-Live-Java) connector and its required runtime components. Complete attribution is available in the third-party notices included in both the source tree and the JAR.
+TikTok Chaos bundles the community [TikTokLiveJava](https://github.com/jwdeveloper/TikTok-Live-Java) connector and its required runtime components. The 1.16.5 build uses [JvmDowngrader](https://github.com/unimined/JvmDowngrader) to remain compatible with Java 8. Complete attribution is available in the third-party notices included in both the source tree and the JAR.
 
 Released under the [MIT License](./LICENSE).

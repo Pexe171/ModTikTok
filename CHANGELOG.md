@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 - Multi-version Forge ports
+
+- Added Forge builds for Minecraft 1.16.5, 1.18.2, 1.19.2, and 1.20.1 while keeping Forge and NeoForge 1.21.1.
+- Added version-specific Minecraft/Forge adapters while sharing the LIVE connector, configuration, rule engine, safety limits, and gift-combo handling.
+- Added a Java 8-compatible 1.16.5 artifact and Java 17-compatible artifacts for 1.18.2 through 1.20.1.
+- Added CI and CurseForge automation that builds, tests, verifies, and publishes all six loader/version artifacts.
+- Added cross-version compatibility for effect lookup and mouse-wheel callbacks used by the full visual editor.
+- Kept the corrected gift amount behavior across every supported version: three roses execute the configured action set three times, subject to the configured safety cap.
+
 ## 1.2.1 - Forge support and gift combos
 
 - Added a dedicated Minecraft Forge 1.21.1 build alongside the existing NeoForge 1.21.1 build.

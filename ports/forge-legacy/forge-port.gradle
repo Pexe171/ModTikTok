@@ -1,0 +1,177 @@
+version = "${mod_version}+mc${portMinecraftVersion}-forge"
+
+base {
+    archivesName = 'tiktok-chaos'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(portJavaVersion as int)
+
+minecraft {
+    mappings channel: 'official', version: portMinecraftVersion
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'info'
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+        client {}
+    }
+}
+
+configurations {
+    tiktokBundle
+    implementation.extendsFrom(tiktokBundle)
+}
+
+def mergeTikTokRuntime = tasks.register('mergeTikTokRuntime', tasks.named('shadowJar').get().class) {
+    archiveBaseName = "tiktok-chaos-dev-tiktok-runtime-${portMinecraftVersion}"
+    archiveClassifier = ''
+    destinationDirectory = layout.buildDirectory.dir('dev-libs')
+    configurations = [project.configurations.tiktokBundle]
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/INDEX.LIST', '**/module-info.class'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Automatic-Module-Name': "tiktokchaos.tiktok.runtime.mc${portMinecraftVersion.replace('.', '_')}"
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${portMinecraftVersion}-${portForgeVersion}"
+    tiktokBundle("com.github.jwdeveloper.TikTok-Live-Java:Client:${tiktok_live_version}") {
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+        exclude group: 'com.google.code.gson', module: 'gson'
+    }
+    runtimeOnly files(mergeTikTokRuntime.flatMap { it.archiveFile })
+    minecraftLibrary files(mergeTikTokRuntime.flatMap { it.archiveFile })
+
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+def repositoryRoot = rootProject.projectDir.parentFile.parentFile
+def generatedSharedJava = layout.buildDirectory.dir('generated/sharedJava')
+def generatedSharedResources = layout.buildDirectory.dir('generated/sharedResources')
+def generatedAdaptedJava = layout.buildDirectory.dir('generated/adaptedJava')
+
+def syncSharedJava = tasks.register('syncSharedJava', Sync) {
+    from new File(repositoryRoot, 'src/main/java')
+    exclude 'br/com/modtiktok/tiktokchaos/platform/neoforge/**'
+    sharedSourceExclusions.each { exclude it as String }
+    into generatedSharedJava
+}
+
+def syncSharedResources = tasks.register('syncSharedResources', Sync) {
+    from new File(repositoryRoot, 'src/main/resources')
+    exclude 'pack.mcmeta'
+    into generatedSharedResources
+}
+
+def syncAdaptedJava = null
+if (project.ext.has('adaptedSourceProject')) {
+    syncAdaptedJava = tasks.register('syncAdaptedJava', Sync) {
+        from project(adaptedSourceProject as String).file('src/main/java')
+        if (project.ext.has('adaptedSourceExclusions')) {
+            adaptedSourceExclusions.each { exclude it as String }
+        }
+        if (project.ext.has('adaptedSourceReplacements')) {
+            filter { String line ->
+                adaptedSourceReplacements.inject(line) { String value, entry ->
+                    value.replace(entry.key as String, entry.value as String)
+                }
+            }
+        }
+        into generatedAdaptedJava
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs generatedSharedJava, file('src/main/java')
+        if (syncAdaptedJava != null) java.srcDir generatedAdaptedJava
+        resources.srcDirs file('src/main/resources'), generatedSharedResources,
+                layout.buildDirectory.dir('generated/modMetadata')
+    }
+    test {
+        java.srcDir new File(repositoryRoot, 'src/test/java')
+    }
+}
+
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    def replaceProperties = [
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_license: mod_license,
+            mod_version: version,
+            forge_loader_version_range: portLoaderRange,
+            forge_version_range: portForgeRange,
+            minecraft_version_range: "[${portMinecraftVersion}]",
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into layout.buildDirectory.dir('generated/modMetadata')
+}
+
+tasks.named('compileJava') {
+    dependsOn syncSharedJava
+    if (syncAdaptedJava != null) dependsOn syncAdaptedJava
+}
+
+tasks.named('processResources') {
+    dependsOn syncSharedResources, generateModMetadata
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('jar') {
+    archiveClassifier = 'thin'
+}
+
+tasks.named('shadowJar') {
+    archiveClassifier = ''
+    configurations = [project.configurations.tiktokBundle]
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/INDEX.LIST', '**/module-info.class'
+    mergeServiceFiles()
+    relocate 'io.github.jwdeveloper', 'br.com.modtiktok.tiktokchaos.shadow.jwdeveloper'
+    relocate 'com.google.protobuf', 'br.com.modtiktok.tiktokchaos.shadow.protobuf'
+    relocate 'org.java_websocket', 'br.com.modtiktok.tiktokchaos.shadow.websocket'
+    manifest {
+        attributes 'Implementation-Title': mod_name,
+                'Implementation-Version': project.version
+    }
+    finalizedBy 'reobfShadowJar'
+}
+
+reobf {
+    shadowJar {}
+}
+
+tasks.named('assemble') {
+    dependsOn tasks.named('shadowJar')
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(portJavaVersion as int)
+    }
+    options.encoding = 'UTF-8'
+    if (!project.ext.has('useReleaseFlag') || useReleaseFlag) {
+        options.release = portJavaVersion as int
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

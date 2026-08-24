@@ -16,15 +16,7 @@ on:
           - beta
           - alpha
       display_name:
-        description: Optional base display name (the loader is appended)
-        required: false
-        type: string
-      existing_file_id:
-        description: Optional existing NeoForge file ID to update
-        required: false
-        type: string
-      existing_forge_file_id:
-        description: Optional existing Forge file ID to update
+        description: Optional base display name (loader and Minecraft version are appended)
         required: false
         type: string
 
@@ -40,8 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
-      # Accept the Project ID from Variables (recommended) or Secrets so a
-      # harmless placement mistake does not block a release.
       CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID || secrets.CURSEFORGE_PROJECT_ID }}
 
     steps:
@@ -58,21 +48,27 @@ jobs:
       - name: Validate publishing configuration
         shell: bash
         run: |
+          set -euo pipefail
           configuration_error=0
           if [[ -z "$CURSEFORGE_API_TOKEN" ]]; then
             echo "::error title=Missing CurseForge token::Create the Actions secret CURSEFORGE_API_TOKEN."
             configuration_error=1
           fi
           if [[ ! "$CURSEFORGE_PROJECT_ID" =~ ^[0-9]+$ ]]; then
-            echo "::error title=Missing CurseForge Project ID::Create CURSEFORGE_PROJECT_ID as an Actions variable (recommended) or secret, using digits only."
+            echo "::error title=Missing CurseForge Project ID::Create CURSEFORGE_PROJECT_ID as an Actions variable or secret, using digits only."
             configuration_error=1
           fi
           if [[ "$configuration_error" -ne 0 ]]; then
             exit 1
           fi
 
+          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
+          legacy_version="$(sed -n 's/^mod_version=//p' ports/forge-legacy/gradle.properties | tr -d '\r')"
+          if [[ "$legacy_version" != "$mod_version" ]]; then
+            echo "Legacy mod_version=${legacy_version} does not match root mod_version=${mod_version}" >&2
+            exit 1
+          fi
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
             tag_version="${GITHUB_REF_NAME#v}"
             if [[ "$tag_version" != "$mod_version" ]]; then
               echo "Tag v${tag_version} does not match mod_version=${mod_version}" >&2
@@ -80,63 +76,93 @@ jobs:
             fi
           fi
 
-      - name: Build and test
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' || inputs.existing_forge_file_id == '' }}
+      - name: Validate Gradle wrappers
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Build Forge and NeoForge 1.21.1
         shell: bash
         run: |
           chmod +x gradlew
           ./gradlew test shadowJar :forge:test :forge:shadowJar --no-daemon
 
-      - name: Find distributable JARs
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' || inputs.existing_forge_file_id == '' }}
-        id: artifact
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+
+      - name: Remember Java 8 location
+        shell: bash
+        run: echo "JAVA_8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Build legacy Forge versions
         shell: bash
         run: |
-          neoforge_jar_path="$(find build/libs -maxdepth 1 -type f -name 'tiktok-chaos-*-neoforge.jar' ! -name '*-thin.jar' -print -quit)"
-          forge_jar_path="$(find forge/build/libs -maxdepth 1 -type f -name 'tiktok-chaos-*-forge.jar' ! -name '*-thin.jar' -print -quit)"
-          if [[ -z "$neoforge_jar_path" ]] || [[ -z "$forge_jar_path" ]]; then
-            echo "Both Forge and NeoForge distributable JARs are required" >&2
-            exit 1
-          fi
-          echo "neoforge_jar_path=$neoforge_jar_path" >> "$GITHUB_OUTPUT"
-          echo "forge_jar_path=$forge_jar_path" >> "$GITHUB_OUTPUT"
+          chmod +x ports/forge-legacy/gradlew
+          ports/forge-legacy/gradlew -p ports/forge-legacy \
+            -Porg.gradle.java.installations.paths="$JAVA_8_HOME,$JAVA_HOME" \
+            :forge-1.16.5:test :forge-1.16.5:verifyJava8Bytecode \
+            :forge-1.18.2:test :forge-1.18.2:shadowJar \
+            :forge-1.19.2:test :forge-1.19.2:shadowJar \
+            :forge-1.20.1:test :forge-1.20.1:shadowJar \
+            --no-daemon
+
+      - name: Verify release JAR set
+        shell: bash
+        run: |
+          set -euo pipefail
+          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
+          expected=(
+            "ports/forge-legacy/forge-1.16.5/build/libs/tiktok-chaos-${mod_version}+mc1.16.5-forge.jar"
+            "ports/forge-legacy/forge-1.18.2/build/libs/tiktok-chaos-${mod_version}+mc1.18.2-forge.jar"
+            "ports/forge-legacy/forge-1.19.2/build/libs/tiktok-chaos-${mod_version}+mc1.19.2-forge.jar"
+            "ports/forge-legacy/forge-1.20.1/build/libs/tiktok-chaos-${mod_version}+mc1.20.1-forge.jar"
+            "forge/build/libs/tiktok-chaos-${mod_version}+mc1.21.1-forge.jar"
+            "build/libs/tiktok-chaos-${mod_version}+mc1.21.1-neoforge.jar"
+          )
+          for jar_path in "${expected[@]}"; do
+            [[ -s "$jar_path" ]] || { echo "Missing release JAR: $jar_path" >&2; exit 1; }
+          done
+          printf '%s\n' "${expected[@]}"
 
       - name: Keep GitHub build artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' || inputs.existing_forge_file_id == '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: tiktok-chaos-all-loaders-${{ github.run_number }}
+          name: tiktok-chaos-all-supported-versions-${{ github.run_number }}
           path: |
-            ${{ steps.artifact.outputs.neoforge_jar_path }}
-            ${{ steps.artifact.outputs.forge_jar_path }}
+            ports/forge-legacy/forge-1.16.5/build/libs/tiktok-chaos-*+mc1.16.5-forge.jar
+            ports/forge-legacy/forge-1.18.2/build/libs/tiktok-chaos-*+mc1.18.2-forge.jar
+            ports/forge-legacy/forge-1.19.2/build/libs/tiktok-chaos-*+mc1.19.2-forge.jar
+            ports/forge-legacy/forge-1.20.1/build/libs/tiktok-chaos-*+mc1.20.1-forge.jar
+            forge/build/libs/tiktok-chaos-*+mc1.21.1-forge.jar
+            build/libs/tiktok-chaos-*+mc1.21.1-neoforge.jar
           if-no-files-found: error
 
-      - name: Upload missing files to CurseForge
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.existing_file_id == '' || inputs.existing_forge_file_id == '' }}
+      - name: Upload all supported versions to CurseForge
         shell: bash
         env:
           REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
           RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'release' }}
-          NEOFORGE_JAR_PATH: ${{ steps.artifact.outputs.neoforge_jar_path }}
-          FORGE_JAR_PATH: ${{ steps.artifact.outputs.forge_jar_path }}
-          EXISTING_NEOFORGE_FILE_ID: ${{ inputs.existing_file_id }}
-          EXISTING_FORGE_FILE_ID: ${{ inputs.existing_forge_file_id }}
         run: |
+          set -euo pipefail
+
           report_api_error() {
             local context="$1"
             local http_code="$2"
             local response_file="$3"
             local message
-
             message="$(jq -r '.errorMessage // .message // .error // empty' "$response_file" 2>/dev/null || true)"
             if [[ -z "$message" ]]; then
               message="$(tr '\n' ' ' < "$response_file" | cut -c1-500)"
             fi
-            if [[ -z "$message" ]]; then
-              message="The API returned no response body."
-            fi
-
-            echo "::error title=CurseForge API error::${context} failed with HTTP ${http_code}: ${message}"
+            echo "::error title=CurseForge API error::${context} failed with HTTP ${http_code}: ${message:-no response body}"
             exit 1
           }
 
@@ -144,62 +170,60 @@ jobs:
             --output curseforge-versions.json \
             --write-out '%{http_code}' \
             --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
-            "https://minecraft.curseforge.com/api/game/versions")"
-
+            'https://minecraft.curseforge.com/api/game/versions')"
           if [[ ! "$versions_http_code" =~ ^2[0-9][0-9]$ ]]; then
             report_api_error "Reading game versions" "$versions_http_code" curseforge-versions.json
           fi
 
-          minecraft_version_id="$(jq -r '[.[] | select(.name == "1.21.1") | .id] | first // empty' curseforge-versions.json)"
-          neoforge_version_id="$(jq -r '[.[] | select(.name == "NeoForge") | .id] | first // empty' curseforge-versions.json)"
-          forge_version_id="$(jq -r '[.[] | select(.name == "Forge") | .id] | first // empty' curseforge-versions.json)"
-          client_version_id="$(jq -r '[.[] | select(.name == "Client") | .id] | first // empty' curseforge-versions.json)"
+          resolve_version_id() {
+            jq -r --arg name "$1" '[.[] | select(.name == $name) | .id] | first // empty' curseforge-versions.json
+          }
 
-          if [[ ! "$minecraft_version_id" =~ ^[0-9]+$ ]] || \
-             [[ ! "$neoforge_version_id" =~ ^[0-9]+$ ]] || \
-             [[ ! "$forge_version_id" =~ ^[0-9]+$ ]] || \
-             [[ ! "$client_version_id" =~ ^[0-9]+$ ]]; then
-            echo "::error title=CurseForge versions not found::Could not resolve 1.21.1, Forge, NeoForge, and Client to numeric game version IDs."
-            exit 1
-          fi
+          client_version_id="$(resolve_version_id Client)"
+          forge_version_id="$(resolve_version_id Forge)"
+          neoforge_version_id="$(resolve_version_id NeoForge)"
+          for resolved_id in "$client_version_id" "$forge_version_id" "$neoforge_version_id"; do
+            [[ "$resolved_id" =~ ^[0-9]+$ ]] || { echo "Could not resolve a loader/client CurseForge version ID" >&2; exit 1; }
+          done
 
-          upload_loader() {
-            local loader_name="$1"
-            local loader_version_id="$2"
-            local jar_path="$3"
-            local response_slug="${loader_name,,}"
-            local display_name
-            local game_version_ids
-            local metadata
-            local upload_http_code
-            local file_id
+          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
+          release_files=(
+            "Forge|1.16.5|ports/forge-legacy/forge-1.16.5/build/libs/tiktok-chaos-${mod_version}+mc1.16.5-forge.jar"
+            "Forge|1.18.2|ports/forge-legacy/forge-1.18.2/build/libs/tiktok-chaos-${mod_version}+mc1.18.2-forge.jar"
+            "Forge|1.19.2|ports/forge-legacy/forge-1.19.2/build/libs/tiktok-chaos-${mod_version}+mc1.19.2-forge.jar"
+            "Forge|1.20.1|ports/forge-legacy/forge-1.20.1/build/libs/tiktok-chaos-${mod_version}+mc1.20.1-forge.jar"
+            "Forge|1.21.1|forge/build/libs/tiktok-chaos-${mod_version}+mc1.21.1-forge.jar"
+            "NeoForge|1.21.1|build/libs/tiktok-chaos-${mod_version}+mc1.21.1-neoforge.jar"
+          )
 
-            if [[ -n "$REQUESTED_DISPLAY_NAME" ]]; then
-              display_name="${REQUESTED_DISPLAY_NAME} - ${loader_name} 1.21.1"
+          for release_file in "${release_files[@]}"; do
+            IFS='|' read -r loader_name minecraft_version jar_path <<< "$release_file"
+            minecraft_version_id="$(resolve_version_id "$minecraft_version")"
+            [[ "$minecraft_version_id" =~ ^[0-9]+$ ]] || { echo "Could not resolve CurseForge version ${minecraft_version}" >&2; exit 1; }
+            if [[ "$loader_name" == "Forge" ]]; then
+              loader_version_id="$forge_version_id"
             else
-              display_name="TikTok Chaos ${mod_version} - ${loader_name} 1.21.1"
+              loader_version_id="$neoforge_version_id"
             fi
 
+            if [[ -n "$REQUESTED_DISPLAY_NAME" ]]; then
+              display_name="${REQUESTED_DISPLAY_NAME} - ${loader_name} ${minecraft_version}"
+            else
+              display_name="TikTok Chaos ${mod_version} - ${loader_name} ${minecraft_version}"
+            fi
             game_version_ids="$(jq -n -c \
               --argjson minecraft "$minecraft_version_id" \
               --argjson loader "$loader_version_id" \
               --argjson client "$client_version_id" \
               '[$minecraft, $loader, $client] | unique')"
-
             metadata="$(jq -n -c \
               --rawfile changelog CHANGELOG.md \
               --arg displayName "$display_name" \
               --arg releaseType "$RELEASE_TYPE" \
               --argjson gameVersions "$game_version_ids" \
-              '{
-                changelog: $changelog,
-                changelogType: "markdown",
-                displayName: $displayName,
-                gameVersions: $gameVersions,
-                releaseType: $releaseType,
-                isMarkedForManualRelease: false
-              }')"
+              '{changelog: $changelog, changelogType: "markdown", displayName: $displayName, gameVersions: $gameVersions, releaseType: $releaseType, isMarkedForManualRelease: false}')"
 
+            response_slug="$(printf '%s-%s' "$loader_name" "$minecraft_version" | tr '[:upper:].' '[:lower:]-')"
             upload_http_code="$(curl --silent --show-error \
               --output "curseforge-response-${response_slug}.json" \
               --write-out '%{http_code}' \
@@ -208,94 +232,10 @@ jobs:
               --form-string "metadata=${metadata}" \
               --form "file=@${jar_path};type=application/java-archive" \
               "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file")"
-
             if [[ ! "$upload_http_code" =~ ^2[0-9][0-9]$ ]]; then
-              report_api_error "Uploading the ${loader_name} mod file" "$upload_http_code" "curseforge-response-${response_slug}.json"
+              report_api_error "Uploading ${loader_name} ${minecraft_version}" "$upload_http_code" "curseforge-response-${response_slug}.json"
             fi
-
             file_id="$(jq -r '.id // empty' "curseforge-response-${response_slug}.json")"
-            if [[ ! "$file_id" =~ ^[0-9]+$ ]]; then
-              echo "CurseForge did not return a numeric ${loader_name} file ID" >&2
-              exit 1
-            fi
-            echo "Uploaded ${loader_name} CurseForge file ID: $file_id"
-          }
-
-          mod_version="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
-          echo "Resolved CurseForge IDs for Minecraft 1.21.1, Forge, NeoForge, and Client."
-
-          if [[ -z "$EXISTING_NEOFORGE_FILE_ID" ]]; then
-            upload_loader "NeoForge" "$neoforge_version_id" "$NEOFORGE_JAR_PATH"
-          fi
-          if [[ -z "$EXISTING_FORGE_FILE_ID" ]]; then
-            upload_loader "Forge" "$forge_version_id" "$FORGE_JAR_PATH"
-          fi
-
-      - name: Update existing CurseForge files
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.existing_file_id != '' || inputs.existing_forge_file_id != '') }}
-        shell: bash
-        env:
-          NEOFORGE_FILE_ID: ${{ inputs.existing_file_id }}
-          FORGE_FILE_ID: ${{ inputs.existing_forge_file_id }}
-          REQUESTED_DISPLAY_NAME: ${{ inputs.display_name }}
-          RELEASE_TYPE: ${{ inputs.release_type }}
-        run: |
-          update_loader() {
-            local loader_name="$1"
-            local target_file_id="$2"
-            local response_slug="${loader_name,,}"
-            local metadata
-            local update_http_code
-            local message
-            local updated_file_id
-
-            if [[ ! "$target_file_id" =~ ^[0-9]+$ ]]; then
-              echo "::error title=Invalid CurseForge file ID::The ${loader_name} file ID must contain digits only."
-              exit 1
-            fi
-
-            if [[ -n "$REQUESTED_DISPLAY_NAME" ]]; then
-              metadata="$(jq -n -c \
-                --argjson fileID "$target_file_id" \
-                --arg releaseType "$RELEASE_TYPE" \
-                --arg displayName "${REQUESTED_DISPLAY_NAME} - ${loader_name} 1.21.1" \
-                '{fileID: $fileID, releaseType: $releaseType, displayName: $displayName}')"
-            else
-              metadata="$(jq -n -c \
-                --argjson fileID "$target_file_id" \
-                --arg releaseType "$RELEASE_TYPE" \
-                '{fileID: $fileID, releaseType: $releaseType}')"
-            fi
-
-            update_http_code="$(curl --silent --show-error \
-              --output "curseforge-update-${response_slug}.json" \
-              --write-out '%{http_code}' \
-              --request POST \
-              --header "X-Api-Token: ${CURSEFORGE_API_TOKEN}" \
-              --form-string "metadata=${metadata}" \
-              "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/update-file")"
-
-            if [[ ! "$update_http_code" =~ ^2[0-9][0-9]$ ]]; then
-              message="$(jq -r '.errorMessage // .message // .error // empty' "curseforge-update-${response_slug}.json" 2>/dev/null || true)"
-              if [[ -z "$message" ]]; then
-                message="$(tr '\n' ' ' < "curseforge-update-${response_slug}.json" | cut -c1-500)"
-              fi
-              echo "::error title=CurseForge API error::Updating ${loader_name} file ${target_file_id} failed with HTTP ${update_http_code}: ${message}"
-              exit 1
-            fi
-
-            updated_file_id="$(jq -r '.id // empty' "curseforge-update-${response_slug}.json")"
-            if [[ "$updated_file_id" != "$target_file_id" ]]; then
-              echo "::error title=Unexpected CurseForge response::The API did not confirm ${loader_name} file ${target_file_id}."
-              exit 1
-            fi
-
-            echo "Updated ${loader_name} CurseForge file ID ${updated_file_id} to ${RELEASE_TYPE}."
-          }
-
-          if [[ -n "$NEOFORGE_FILE_ID" ]]; then
-            update_loader "NeoForge" "$NEOFORGE_FILE_ID"
-          fi
-          if [[ -n "$FORGE_FILE_ID" ]]; then
-            update_loader "Forge" "$FORGE_FILE_ID"
-          fi
+            [[ "$file_id" =~ ^[0-9]+$ ]] || { echo "CurseForge did not return a file ID for ${loader_name} ${minecraft_version}" >&2; exit 1; }
+            echo "Uploaded ${loader_name} ${minecraft_version}: CurseForge file ${file_id}"
+          done

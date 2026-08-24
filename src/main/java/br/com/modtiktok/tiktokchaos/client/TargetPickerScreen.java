@@ -150,7 +150,7 @@ public final class TargetPickerScreen extends Screen {
             if (!entry.itemIcon().isEmpty()) {
                 graphics.renderItem(entry.itemIcon(), iconX, iconY, index);
             } else if (entry.effectIcon() != null) {
-                TextureAtlasSprite sprite = minecraft.getMobEffectTextures().get(entry.effectIcon());
+                TextureAtlasSprite sprite = MinecraftVersionCompat.effectSprite(minecraft, entry.effectIcon());
                 graphics.blit(iconX - 1, iconY - 1, 0, 18, 18, sprite);
             }
 
@@ -176,14 +176,20 @@ public final class TargetPickerScreen extends Screen {
         graphics.fill(trackX, thumbY, trackX + 4, thumbY + thumbHeight, 0xFF66F0C8);
     }
 
-    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (insideGrid(mouseX, mouseY) && maxScrollRow() > 0) {
-            int direction = scrollY > 0 ? -1 : 1;
-            scrollRow = Mth.clamp(scrollRow + direction, 0, maxScrollRow());
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return handleMouseScrolled(mouseX, mouseY, scrollY);
+    }
+
+    /** Minecraft 1.20.1 and older expose the three-argument scroll callback. */
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+        return handleMouseScrolled(mouseX, mouseY, scrollY);
+    }
+
+    private boolean handleMouseScrolled(double mouseX, double mouseY, double scrollY) {
+        if (!insideGrid(mouseX, mouseY) || maxScrollRow() == 0) return false;
+        int direction = scrollY > 0 ? -1 : 1;
+        scrollRow = Mth.clamp(scrollRow + direction, 0, maxScrollRow());
+        return true;
     }
 
     @Override
