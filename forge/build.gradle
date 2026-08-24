@@ -83,6 +83,10 @@ sourceSets {
     }
 }
 
+// ForgeGradle's merged source-set mode does not automatically expose main output to tests.
+sourceSets.test.compileClasspath += sourceSets.main.output
+sourceSets.test.runtimeClasspath += sourceSets.main.output
+
 def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
     def replaceProperties = [
             minecraft_version: minecraft_version,

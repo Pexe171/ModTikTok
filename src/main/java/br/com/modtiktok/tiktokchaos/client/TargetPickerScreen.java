@@ -39,7 +39,7 @@ public final class TargetPickerScreen extends Screen {
 
     public TargetPickerScreen(Screen parent, VisualTargetCatalog.Kind kind, String selectedId,
                               Consumer<String> onSelected) {
-        super(Component.literal(kind.title()));
+        super(ClientText.component(kind.titleKey()));
         this.parent = parent;
         this.kind = kind;
         this.selectedId = selectedId == null ? "" : selectedId;
@@ -62,16 +62,16 @@ public final class TargetPickerScreen extends Screen {
         cellWidth = (gridRight - gridLeft) / columns;
 
         searchField = new EditBox(font, panelLeft + 14, panelTop + 27, panelWidth - 120, 20,
-                Component.literal("Buscar"));
+                ClientText.component("gui.tiktokchaos.search"));
         searchField.setMaxLength(100);
-        searchField.setHint(Component.literal("Buscar por nome ou ID..."));
+        searchField.setHint(ClientText.component("gui.tiktokchaos.picker.search_hint"));
         searchField.setValue(query);
         searchField.setResponder(value -> {
             query = value;
             applyFilter(false);
         });
         addRenderableWidget(searchField);
-        addRenderableWidget(Button.builder(Component.literal("Voltar"), button -> returnToParent())
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.back"), button -> returnToParent())
                 .bounds(panelLeft + panelWidth - 96, panelTop + 27, 82, 20).build());
 
         allEntries = VisualTargetCatalog.entries(kind, minecraft);
@@ -105,16 +105,18 @@ public final class TargetPickerScreen extends Screen {
 
         // As in the other screens, draw custom content after FancyMenu's blur hook.
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawString(font, kind.title().toUpperCase(), panelLeft + 14, panelTop + 8, 0xFF66F0C8, true);
-        graphics.drawString(font, filteredEntries.size() + " " + kind.plural(), panelLeft + panelWidth - 92,
+        graphics.drawString(font, ClientText.text(kind.titleKey()).toUpperCase(java.util.Locale.ROOT), panelLeft + 14,
+                panelTop + 8, 0xFF66F0C8, true);
+        graphics.drawString(font, ClientText.text(kind.countKey(), filteredEntries.size()), panelLeft + panelWidth - 92,
                 panelTop + 9, 0xFFC6BCCE, true);
 
         VisualTargetCatalog.Entry hovered = renderVisibleEntries(graphics, mouseX, mouseY);
         renderScrollbar(graphics);
-        graphics.drawString(font, "Role para ver mais • clique para selecionar", gridLeft,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.picker.instructions"), gridLeft,
                 panelTop + panelHeight - 20, 0xFFB8AFC0, true);
         if (filteredEntries.isEmpty()) {
-            graphics.drawCenteredString(font, "Nenhum resultado encontrado", (gridLeft + gridRight) / 2,
+            graphics.drawCenteredString(font, ClientText.text("gui.tiktokchaos.picker.no_results"),
+                    (gridLeft + gridRight) / 2,
                     gridTop + 20, 0xFFFFC857);
         }
         if (hovered != null) {

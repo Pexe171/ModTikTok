@@ -63,7 +63,7 @@ public final class ActionExecutor {
     public ExecutionResult execute(MinecraftServer server, UUID playerId, ActionRequest request,
                                    TikTokChaosConfig.Safety safety) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerId);
-        if (player == null) return ExecutionResult.failure("Jogador nao encontrado");
+        if (player == null) return ExecutionResult.failure(tr("result.tiktokchaos.player_not_found"));
         ServerLevel level = player.getLevel();
         ActionSpec action = request.action();
 
@@ -197,14 +197,14 @@ public final class ActionExecutor {
         EntityType<?> type = ActionTargets.isRandom(action.target)
                 ? RandomActionTargets.entity(random)
                 : id == null || !Registry.ENTITY_TYPE.containsKey(id) ? null : Registry.ENTITY_TYPE.get(id);
-        if (type == null) throw new IllegalArgumentException("Entidade desconhecida");
+        if (type == null) throw new IllegalArgumentException(tr("result.tiktokchaos.unknown_entity"));
         if (!ActionTargets.isAllowedEntity(type)) {
-            throw new IllegalArgumentException("Entidade nao permitida: " + action.target);
+            throw new IllegalArgumentException(tr("result.tiktokchaos.entity_not_allowed", action.target));
         }
 
         int room = Math.max(0, safety.maxTrackedMobs - trackedEntities.size());
         int count = Math.min(Math.max(1, action.amount), room);
-        if (count == 0) return "limite de mobs atingido";
+        if (count == 0) return tr("result.tiktokchaos.mob_limit_reached");
 
         int spawned = 0;
         for (int i = 0; i < count; i++) {
@@ -222,8 +222,8 @@ public final class ActionExecutor {
                 spawned++;
             }
         }
-        return spawned + (spawned == 1 ? " mob invocado: " : " mobs invocados: ")
-                + type.getDescription().getString();
+        return tr(spawned == 1 ? "result.tiktokchaos.mob_spawned" : "result.tiktokchaos.mobs_spawned", spawned,
+                type.getDescription().getString());
     }
 
     private String give(ServerPlayer player, ActionSpec action) {
@@ -231,7 +231,7 @@ public final class ActionExecutor {
         Item item = ActionTargets.isRandom(action.target)
                 ? RandomActionTargets.item(random)
                 : id == null ? Items.AIR : Registry.ITEM.get(id);
-        if (item == Items.AIR) throw new IllegalArgumentException("Item invalido: " + action.target);
+        if (item == Items.AIR) throw new IllegalArgumentException(tr("result.tiktokchaos.invalid_item", action.target));
         ItemStack stack = new ItemStack(item, Math.max(1, action.amount));
         if (!player.getInventory().add(stack)) player.drop(stack, false);
         return stack.getCount() + "x " + stack.getHoverName().getString();
@@ -241,35 +241,36 @@ public final class ActionExecutor {
         MobEffect effect = ActionTargets.isRandom(action.target)
                 ? RandomActionTargets.effect(random)
                 : effectById(action.target);
-        if (effect == null) throw new IllegalArgumentException("Efeito invalido: " + action.target);
+        if (effect == null) throw new IllegalArgumentException(tr("result.tiktokchaos.invalid_effect", action.target));
         applyTrackedEffect(player, effect, Math.max(20, action.durationTicks), action.amplifier);
         ResourceLocation effectId = Registry.MOB_EFFECT.getKey(effect);
-        return "efeito " + (effectId == null ? effect.getDisplayName().getString() : effectId.getPath());
+        return tr("result.tiktokchaos.effect", effectId == null ? effect.getDisplayName().getString()
+                : effectId.getPath());
     }
 
     private String teleport(ServerLevel level, ServerPlayer player, ActionSpec action) {
         BlockPos position = findSafePosition(level, player.blockPosition(), 3, Math.max(3, action.radius));
         player.teleportTo(level, position.getX() + 0.5, position.getY(), position.getZ() + 0.5,
                 player.getYRot(), player.getXRot());
-        return "teleporte curto";
+        return tr("result.tiktokchaos.short_teleport");
     }
 
     private String lightning(ServerLevel level, ServerPlayer player, TikTokChaosConfig.Safety safety) {
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
-        if (bolt == null) return "raio indisponivel";
+        if (bolt == null) return tr("result.tiktokchaos.lightning_unavailable");
         BlockPos position = findSafePosition(level, player.blockPosition(), safety.minSpawnRadius,
                 safety.maxSpawnRadius);
         bolt.moveTo(position.getX() + 0.5, position.getY(), position.getZ() + 0.5);
         bolt.setVisualOnly(true);
         level.addFreshEntity(bolt);
-        return "raio cosmetico";
+        return tr("result.tiktokchaos.cosmetic_lightning");
     }
 
     private String weather(ServerLevel level, ActionSpec action) {
         int duration = action.durationTicks > 0 ? action.durationTicks : 20 * 30;
         trackedWeather.putIfAbsent(level.dimension(), new WeatherSnapshot(level.isRaining(), level.isThundering()));
         level.setWeatherParameters(0, duration, true, false);
-        return "chuva temporaria";
+        return tr("result.tiktokchaos.temporary_rain");
     }
 
     private String message(ServerPlayer player, ActionRequest request, ActionSpec action) {
@@ -289,35 +290,35 @@ public final class ActionExecutor {
     private String randomEffect(ServerPlayer player, List<MobEffect> effects, int ticks) {
         MobEffect effect = effects.get(random.nextInt(effects.size()));
         applyTrackedEffect(player, effect, ticks, 0);
-        return "efeito surpresa";
+        return tr("result.tiktokchaos.surprise_effect");
     }
 
     private String playSound(ServerLevel level, ServerPlayer player, ActionSpec action) {
         ResourceLocation id = ResourceLocation.tryParse(action.target);
         SoundEvent sound = id == null ? null : Registry.SOUND_EVENT.get(id);
-        if (sound == null) throw new IllegalArgumentException("Som invalido: " + action.target);
+        if (sound == null) throw new IllegalArgumentException(tr("result.tiktokchaos.invalid_sound", action.target));
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0F, 1.0F);
-        return "som " + id.getPath();
+        return tr("result.tiktokchaos.sound", id.getPath());
     }
 
     private String launch(ServerPlayer player, ActionSpec action) {
         double strength = Math.max(0.4, Math.min(2.0, action.amount * 0.2));
         player.setDeltaMovement(player.getDeltaMovement().add(0.0, strength, 0.0));
         player.hurtMarked = true;
-        return "lancamento vertical seguro";
+        return tr("result.tiktokchaos.safe_launch");
     }
 
     private String freeze(ServerPlayer player, ActionSpec action) {
         int duration = action.durationTicks > 0 ? action.durationTicks : 100;
         applyTrackedEffect(player, MobEffects.MOVEMENT_SLOWDOWN, duration, Math.max(4, action.amplifier));
-        return "congelamento por " + Math.max(1, duration / 20) + "s";
+        return tr("result.tiktokchaos.frozen_for", Math.max(1, duration / 20));
     }
 
     private String particles(ServerLevel level, ServerPlayer player, ActionSpec action) {
         int count = Math.max(10, Math.min(100, action.amount * 10));
         level.sendParticles(ParticleTypes.POOF, player.getX(), player.getY() + 1.0, player.getZ(), count,
                 0.8, 1.0, 0.8, 0.05);
-        return "explosao visual de particulas";
+        return tr("result.tiktokchaos.particle_burst");
     }
 
     private String centerMessage(ServerPlayer player, ActionRequest request, ActionSpec action) {
@@ -347,26 +348,26 @@ public final class ActionExecutor {
                 spawned++;
             }
         }
-        return spawned + " itens visuais em chuva";
+        return tr("result.tiktokchaos.visual_item_rain", spawned);
     }
 
     private String giftCannon(ServerLevel level, ServerPlayer player, ActionSpec action,
                               TikTokChaosConfig.Safety safety) {
         String result = itemRain(level, player, action, safety);
-        return "canhao visual: " + result;
+        return tr("result.tiktokchaos.gift_cannon_legacy", result);
     }
 
     private String likeFountain(ServerLevel level, ServerPlayer player, ActionSpec action) {
         int count = Math.max(10, Math.min(100, action.amount * 10));
         level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 0.2, player.getZ(), count,
                 1.2, 2.0, 1.2, 0.08);
-        return "fonte visual de " + count + " curtidas";
+        return tr("result.tiktokchaos.like_fountain", count);
     }
 
     private String spawnBoss(ServerLevel level, ServerPlayer player, ActionRequest request, ActionSpec action,
                              TikTokChaosConfig.Safety safety) {
         long bosses = trackedEntities.values().stream().filter(TrackedEntity::boss).count();
-        if (bosses >= safety.maxViewerBosses) return "limite de bosses atingido";
+        if (bosses >= safety.maxViewerBosses) return tr("result.tiktokchaos.boss_limit_reached");
         ActionSpec single = action.copy();
         single.amount = 1;
         int before = trackedEntities.size();
@@ -379,12 +380,12 @@ public final class ActionExecutor {
                             entry.getValue().dimension(), entry.getValue().removeAt(),
                             entry.getValue().viewerName(), true)));
         }
-        return "boss: " + result;
+        return tr("result.tiktokchaos.boss_legacy", result);
     }
 
     private String reversibleBox(ServerLevel level, ServerPlayer player, TikTokChaosConfig.Safety safety) {
         if (!safety.destructiveActionsEnabled || !safety.destructiveActionsConfirmed) {
-            throw new IllegalStateException("Acoes no mundo exigem ativacao e confirmacao em Seguranca");
+            throw new IllegalStateException(tr("result.tiktokchaos.world_actions_confirmation"));
         }
         int radius = 3;
         int changed = 0;
@@ -413,7 +414,7 @@ public final class ActionExecutor {
                 }
             }
         }
-        return changed + " blocos alterados com restauracao automatica";
+        return tr("result.tiktokchaos.blocks_changed", changed);
     }
 
     private void restoreExpiredBlocks(MinecraftServer server, long now, boolean force) {
@@ -460,6 +461,10 @@ public final class ActionExecutor {
         ResourceLocation key = ResourceLocation.tryParse(id);
         if (key == null || !Registry.MOB_EFFECT.containsKey(key)) return null;
         return Registry.MOB_EFFECT.get(key);
+    }
+
+    private static String tr(String key, Object... arguments) {
+        return Component.translatable(key, arguments).getString();
     }
 
     /** Bridges the server chat rename between Minecraft 1.18 and 1.19. */

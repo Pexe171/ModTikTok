@@ -16,7 +16,7 @@ public final class TikTokChaosScreen extends Screen {
     private EditBox usernameField;
 
     public TikTokChaosScreen(Screen parent) {
-        super(Component.literal("TikTok Chaos"));
+        super(Component.translatable("gui.tiktokchaos.title"));
         this.parent = parent;
     }
 
@@ -27,14 +27,15 @@ public final class TikTokChaosScreen extends Screen {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
 
         usernameField = new EditBox(font, left + 18, top + 58, PANEL_WIDTH - 36, 22,
-                Component.literal("Usuario do TikTok"));
+                Component.translatable("gui.tiktokchaos.username"));
         usernameField.setMaxLength(64);
         usernameField.setValue(runtime.config().connection.username);
-        usernameField.setSuggestion("@usuario");
+        usernameField.setSuggestion(ClientText.text("gui.tiktokchaos.username_hint"));
         addRenderableWidget(usernameField);
 
         Button connection = new Button(left + 18, top + 92, 126, 22,
-                runtime.isConnectionRunning() ? Component.literal("Desconectar") : Component.literal("Conectar"),
+                runtime.isConnectionRunning() ? Component.translatable("gui.tiktokchaos.disconnect")
+                        : Component.translatable("gui.tiktokchaos.connect"),
                 button -> {
                     saveUsername();
                     if (runtime.isConnectionRunning()) runtime.disconnect(); else runtime.connect();
@@ -42,7 +43,8 @@ public final class TikTokChaosScreen extends Screen {
                 });
         connection.active = runtime.isWorldActive();
         addRenderableWidget(connection);
-        addRenderableWidget(new Button(left + 152, top + 92, 92, 22, Component.literal("Salvar"), button -> {
+        addRenderableWidget(new Button(left + 152, top + 92, 92, 22,
+                Component.translatable("gui.tiktokchaos.save"), button -> {
             saveUsername();
             runtime.saveConfig();
         }));
@@ -56,16 +58,16 @@ public final class TikTokChaosScreen extends Screen {
             rebuildScreen();
         }));
 
-        addSimulation(left + 18, top + 168, "100 curtidas", LiveEventType.LIKE);
-        addSimulation(left + 217, top + 168, "Presente (120)", LiveEventType.GIFT);
-        addSimulation(left + 18, top + 198, "Comentario !zumbi", LiveEventType.COMMENT);
-        addSimulation(left + 217, top + 198, "Novo follow", LiveEventType.FOLLOW);
+        addSimulation(left + 18, top + 168, "gui.tiktokchaos.simulate_likes", LiveEventType.LIKE);
+        addSimulation(left + 217, top + 168, "gui.tiktokchaos.simulate_gift", LiveEventType.GIFT);
+        addSimulation(left + 18, top + 198, "gui.tiktokchaos.simulate_comment", LiveEventType.COMMENT);
+        addSimulation(left + 217, top + 198, "gui.tiktokchaos.simulate_follow", LiveEventType.FOLLOW);
         addRenderableWidget(new Button(left + PANEL_WIDTH - 82, top + 222, 82, 20,
-                Component.literal("Fechar"), button -> onClose()));
+                Component.translatable("gui.tiktokchaos.close"), button -> onClose()));
     }
 
-    private void addSimulation(int x, int y, String label, LiveEventType type) {
-        Button button = new Button(x, y, 190, 24, Component.literal(label),
+    private void addSimulation(int x, int y, String key, LiveEventType type) {
+        Button button = new Button(x, y, 190, 24, Component.translatable(key),
                 pressed -> TikTokChaosMod.runtime().simulate(type));
         button.active = TikTokChaosMod.runtime().isWorldActive();
         addRenderableWidget(button);
@@ -83,24 +85,29 @@ public final class TikTokChaosScreen extends Screen {
         font.drawShadow(poseStack, "TIKTOK", left, top + 4, 0xFFE83E8C);
         font.drawShadow(poseStack, "CHAOS", left + 44, top + 4, 0xFF66F0C8);
         font.drawShadow(poseStack, "Forge 1.19.2", left + PANEL_WIDTH - 82, top + 4, 0xFFC6BCCE);
-        font.drawShadow(poseStack, "Conta que esta transmitindo", left + 18, top + 44, 0xFFCFC4D6);
+        font.drawShadow(poseStack, ClientText.text("gui.tiktokchaos.streaming_account"), left + 18, top + 44,
+                0xFFCFC4D6);
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
         int color = runtime.status() == br.com.modtiktok.tiktokchaos.live.ConnectionStatus.CONNECTED
                 ? 0xFF66F0C8 : 0xFFFFC857;
-        font.drawShadow(poseStack, runtime.status().label() + " - ACOES " + runtime.runState().label(),
+        font.drawShadow(poseStack, ClientText.text("gui.tiktokchaos.connection_state_legacy",
+                        ClientText.status(runtime.status()), ClientText.runState(runtime.runState())),
                 left + 224, top + 126, color);
-        font.drawShadow(poseStack, "F9 = emergencia e limpeza", left + 18, top + 150, 0xFFFF6B81);
+        font.drawShadow(poseStack, ClientText.text("gui.tiktokchaos.f9_cleanup_legacy"), left + 18, top + 150,
+                0xFFFF6B81);
     }
 
     private Component reconnectLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().connection.autoReconnect;
-        return Component.literal((enabled ? "[x] " : "[ ] ") + "Reconexao automatica")
+        return Component.literal(enabled ? "[x] " : "[ ] ")
+                .append(Component.translatable("gui.tiktokchaos.auto_reconnect"))
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
     private Component runStateLabel() {
         boolean paused = TikTokChaosMod.runtime().areActionsPaused();
-        return Component.literal(paused ? "> Retomar acoes" : "|| Pausar acoes")
+        return Component.translatable(paused ? "gui.tiktokchaos.resume_actions_legacy"
+                        : "gui.tiktokchaos.pause_actions_legacy")
                 .withStyle(paused ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
     }
 

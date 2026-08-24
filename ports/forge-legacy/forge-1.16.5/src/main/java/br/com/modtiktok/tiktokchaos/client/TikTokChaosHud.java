@@ -27,32 +27,36 @@ public final class TikTokChaosHud {
         AbstractGui.fill(matrixStack, x, y, x + 3, y + height,
                 runtime.areActionsPaused() ? 0xFFFF5D73 : statusColor(runtime.status()));
         minecraft.font.drawShadow(matrixStack,
-                "TikTok Chaos - " + runtime.status().label() + " - " + runtime.runState().label(), x + 9, y + 7,
+                ClientText.text("hud.tiktokchaos.header_legacy", ClientText.status(runtime.status()),
+                        ClientText.runState(runtime.runState())), x + 9, y + 7,
                 0xFFF4E9FF);
         LiveEvent event = runtime.lastEvent();
-        String eventText = event == null ? "Aguardando eventos" : truncate(event.summary(), 34);
+        String eventText = event == null ? ClientText.text("hud.tiktokchaos.waiting_events")
+                : truncate(ClientText.eventSummary(event), 34);
         minecraft.font.drawShadow(matrixStack, eventText, x + 9, y + 21, 0xFFE3D9EA);
         minecraft.font.drawShadow(matrixStack,
-                "Fila " + runtime.queueSize() + " - Mobs " + runtime.trackedMobCount() + "/"
-                        + runtime.config().safety.maxTrackedMobs
-                        + (runtime.isPerformanceThrottled() ? " - PROTECAO FPS" : ""),
+                ClientText.text("hud.tiktokchaos.queue_mobs_legacy", runtime.queueSize(), runtime.trackedMobCount(),
+                        runtime.config().safety.maxTrackedMobs)
+                        + (runtime.isPerformanceThrottled()
+                        ? ClientText.text("hud.tiktokchaos.fps_protection_legacy") : ""),
                 x + 9, y + 35, 0xFFB8AFC2);
         int nextY = y + 49;
         if (runtime.config().hud.showGoals && !stats.goals().isEmpty()) {
             SessionStats.GoalProgress goal = stats.goals().get(0);
             minecraft.font.drawShadow(matrixStack,
-                    "Meta: " + goal.name() + " " + goal.current() + "/" + goal.target(), x + 9, nextY,
+                    ClientText.text("hud.tiktokchaos.goal", goal.name(), goal.current(), goal.target()), x + 9, nextY,
                     goal.complete() ? 0xFF66F0C8 : 0xFFFFD166);
             nextY += 14;
         }
         if (runtime.config().hud.showRanking && !stats.ranking().isEmpty()) {
             SessionStats.ViewerRank leader = stats.ranking().get(0);
-            minecraft.font.drawShadow(matrixStack, "Top: " + truncate(leader.name(), 20) + " - "
-                    + leader.coins() + " moedas", x + 9, nextY, 0xFFE3D9EA);
+            minecraft.font.drawShadow(matrixStack, ClientText.text("hud.tiktokchaos.top_legacy",
+                    truncate(leader.name(), 20), leader.coins()), x + 9, nextY, 0xFFE3D9EA);
             nextY += 14;
         }
         if (runtime.config().hud.showChat && !runtime.latestChatLine().isBlank()) {
-            minecraft.font.drawShadow(matrixStack, "Chat: " + truncate(runtime.latestChatLine(), 34), x + 9,
+            minecraft.font.drawShadow(matrixStack, ClientText.text("hud.tiktokchaos.chat",
+                    truncate(runtime.latestChatLine(), 34)), x + 9,
                     nextY, 0xFFCFC4D6);
         }
     }

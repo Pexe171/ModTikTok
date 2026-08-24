@@ -21,6 +21,7 @@ ext.adaptedSourceExclusions = [
 ]
 ext.adaptedSourceReplacements = [
         'Component.literal(': 'new net.minecraft.network.chat.TextComponent(',
+        'Component.translatable(': 'new net.minecraft.network.chat.TranslatableComponent(',
         'Forge 1.19.2': 'Forge 1.18.2'
 ]
 

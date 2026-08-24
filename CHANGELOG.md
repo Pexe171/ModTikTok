@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.1 - Minecraft language support
+
+- Made the complete dashboard follow Minecraft's selected language automatically, with Brazilian Portuguese and English resources and English fallback for other languages.
+- Localized the rule editor, timeline, detailed simulator, visual target catalog, presets, session statistics, history, connection states, safety controls, HUD, and gameplay action results.
+- Localized the compact legacy interface and HUD on Forge 1.16.5, 1.18.2, and 1.19.2 while keeping the full interface on Forge 1.20.1, Forge 1.21.1, and NeoForge 1.21.1.
+- Added automatic tests that require exact key and placeholder parity between `en_us` and `pt_br`, validate every event/action/status enum, and reject broken UTF-8 text.
+- Added reproducible JDK 17 toolchain provisioning for the legacy multi-version build.
+
 ## 1.4.0 - Live control, presets, combos, and session tools
 
 - Added global `ACTIVE/PAUSED` action state and an `F9` emergency stop that clears the queue, cancels sequences, removes temporary entities, and restores tracked effects, weather, and reversible blocks without disconnecting the LIVE.

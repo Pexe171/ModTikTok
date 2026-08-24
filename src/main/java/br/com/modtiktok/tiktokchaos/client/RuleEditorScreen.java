@@ -43,7 +43,7 @@ public final class RuleEditorScreen extends Screen {
     private String validationMessage = "";
 
     public RuleEditorScreen(Screen parent, Rule rule, boolean newRule) {
-        super(Component.literal("Editor de regra"));
+        super(ClientText.component("gui.tiktokchaos.rule_editor.title"));
         this.parent = parent;
         this.rule = rule;
         this.newRule = newRule;
@@ -56,7 +56,8 @@ public final class RuleEditorScreen extends Screen {
     public static Rule newRule() {
         RuleCondition condition = new RuleCondition();
         condition.commentCommand = "!novo";
-        return new Rule("custom_" + System.currentTimeMillis(), "Minha regra", LiveEventType.COMMENT, condition,
+        return new Rule("custom_" + System.currentTimeMillis(), ClientText.text("gui.tiktokchaos.rule_editor.default_name"),
+                LiveEventType.COMMENT, condition,
                 3_000, 20_000, List.of(ActionSpec.spawn("minecraft:zombie", 1)));
     }
 
@@ -67,7 +68,8 @@ public final class RuleEditorScreen extends Screen {
         int fieldX = left + 154;
         int fieldWidth = 292;
 
-        nameField = field(fieldX, top + 42, fieldWidth, rule.name, 80);
+        nameField = field(fieldX, top + 42, fieldWidth,
+                ClientText.configuredName("rule", rule.id, rule.name), 80);
         commandField = field(fieldX, top + 94, 128, rule.condition.commentCommand, 64);
         giftIdField = field(fieldX + 138, top + 94, 72, Integer.toString(rule.condition.giftId), 10);
         thresholdField = field(fieldX + 220, top + 94, 72, Integer.toString(rule.condition.threshold), 10);
@@ -116,11 +118,11 @@ public final class RuleEditorScreen extends Screen {
         if (pickerKind != null) {
             actionTargetField = field(fieldX, top + 206, 128, action.target, 128);
             actionTargetField.setHint(Component.literal("minecraft:id"));
-            addRenderableWidget(Button.builder(Component.literal("Escolher"), button -> openTargetPicker())
+            addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.choose"), button -> openTargetPicker())
                     .bounds(fieldX + 136, top + 206, 74, 20).build());
         } else if (action.type == ActionType.MESSAGE || action.type == ActionType.CENTER_MESSAGE) {
             actionTargetField = field(fieldX, top + 206, fieldWidth, action.message, 200);
-            actionTargetField.setHint(Component.literal("Mensagem mostrada no jogo"));
+            actionTargetField.setHint(ClientText.component("gui.tiktokchaos.rule_editor.message_hint"));
         } else if (action.type == ActionType.PLAY_SOUND) {
             actionTargetField = field(fieldX, top + 206, fieldWidth, action.target, 128);
             actionTargetField.setHint(Component.literal("minecraft:entity.experience_orb.pickup"));
@@ -155,13 +157,13 @@ public final class RuleEditorScreen extends Screen {
         }).bounds(left + 52, top + 234, 28, 20).build();
         next.active = actionIndex + 1 < rule.actions.size();
         addRenderableWidget(next);
-        addRenderableWidget(Button.builder(Component.literal("+ Ação"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.rule_editor.add_action"), button -> {
             persistFields(false);
             rule.actions.add(ActionSpec.spawn("minecraft:zombie", 1));
             actionIndex = rule.actions.size() - 1;
             rebuildScreen();
         }).bounds(left + 90, top + 234, 70, 20).build());
-        Button removeAction = Button.builder(Component.literal("− Ação"), button -> {
+        Button removeAction = Button.builder(ClientText.component("gui.tiktokchaos.rule_editor.remove_action"), button -> {
             persistFields(false);
             if (rule.actions.size() > 1) {
                 rule.actions.remove(actionIndex);
@@ -181,21 +183,23 @@ public final class RuleEditorScreen extends Screen {
             }
             rebuildScreen();
         }).bounds(left + 250, top + 234, 96, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Sequência " + rule.sequence.size()), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.rule_editor.sequence",
+                rule.sequence.size()), button -> {
             persistFields(false);
             if (minecraft != null) minecraft.setScreen(new SequenceEditorScreen(this, rule));
         }).bounds(left + 350, top + 234, 96, 20).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Salvar"), button -> save())
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.save"), button -> save())
                 .bounds(left + 18, top + 272, 94, 22).build());
         if (!newRule) {
-            addRenderableWidget(Button.builder(Component.literal("Excluir").withStyle(ChatFormatting.RED), button -> {
+            addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.delete")
+                    .withStyle(ChatFormatting.RED), button -> {
                 TikTokChaosMod.runtime().config().rules.remove(rule);
                 TikTokChaosMod.runtime().saveConfig();
                 returnToParent();
             }).bounds(left + 120, top + 272, 94, 22).build());
         }
-        addRenderableWidget(Button.builder(Component.literal("Cancelar"), button -> returnToParent())
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.cancel"), button -> returnToParent())
                 .bounds(left + PANEL_WIDTH - 112, top + 272, 94, 22).build());
     }
 
@@ -219,17 +223,18 @@ public final class RuleEditorScreen extends Screen {
 
         // Keep custom labels above blur injected during vanilla widget rendering.
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawString(font, newRule ? "NOVA REGRA" : "EDITAR REGRA", left, top + 4, 0xFF66F0C8, true);
-        label(graphics, left, top + 48, "Nome");
-        label(graphics, left, top + 74, "Evento / estado");
-        label(graphics, left, top + 100, "Comando / ID / meta");
-        label(graphics, left, top + 128, "Valor mín. / máx.");
-        label(graphics, left, top + 156, "Cooldown global/usuário (s)");
+        graphics.drawString(font, ClientText.text(newRule ? "gui.tiktokchaos.rule_editor.new_heading"
+                : "gui.tiktokchaos.rule_editor.edit_heading"), left, top + 4, 0xFF66F0C8, true);
+        label(graphics, left, top + 48, ClientText.text("gui.tiktokchaos.rule_editor.name"));
+        label(graphics, left, top + 74, ClientText.text("gui.tiktokchaos.rule_editor.event_state"));
+        label(graphics, left, top + 100, ClientText.text("gui.tiktokchaos.rule_editor.command_id_goal"));
+        label(graphics, left, top + 128, ClientText.text("gui.tiktokchaos.rule_editor.min_max"));
+        label(graphics, left, top + 156, ClientText.text("gui.tiktokchaos.rule_editor.cooldowns"));
         ActionSpec action = currentAction();
         label(graphics, left, top + 186, primaryLabel(action));
         label(graphics, left, top + 212, targetLabel(action));
-        graphics.drawString(font, "Ação " + (actionIndex + 1) + "/" + rule.actions.size()
-                        + " • " + actionSummary(action),
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.rule_editor.action_summary", actionIndex + 1,
+                        rule.actions.size(), actionSummary(action)),
                 left + 250, top + 258, 0xFFBDB0C7, true);
         if (!validationMessage.isBlank()) {
             graphics.drawString(font, validationMessage, left + 222, top + 279, 0xFFFF6B81, true);
@@ -267,7 +272,9 @@ public final class RuleEditorScreen extends Screen {
                 }
                 else action.target = actionTargetField.getValue().strip();
             }
-            if (validate && rule.name.isBlank()) throw new IllegalArgumentException("Informe um nome");
+            if (validate && rule.name.isBlank()) {
+                throw new IllegalArgumentException(ClientText.text("gui.tiktokchaos.rule_editor.name_required"));
+            }
             validationMessage = "";
             return true;
         } catch (IllegalArgumentException exception) {
@@ -346,56 +353,62 @@ public final class RuleEditorScreen extends Screen {
 
     private String primaryLabel(ActionSpec action) {
         return switch (action.type) {
-            case SPAWN_ENTITY, GIVE_ITEM -> "Tipo da ação / quantidade";
-            case APPLY_EFFECT -> "Tipo / nível do efeito";
-            case SHORT_TELEPORT -> "Tipo / raio em blocos";
-            case SET_WEATHER -> "Tipo / duração";
-            case LAUNCH_PLAYER -> "Tipo / força";
-            case FREEZE_PLAYER -> "Tipo / duração";
-            case PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN -> "Tipo / quantidade";
-            case SPAWN_VIEWER_BOSS -> "Tipo / boss único";
-            case REVERSIBLE_BLOCK_BOX -> "Tipo / limite da Segurança";
-            default -> "Tipo da ação";
+            case SPAWN_ENTITY, GIVE_ITEM -> ClientText.text("gui.tiktokchaos.rule_editor.type_amount");
+            case APPLY_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.type_effect_level");
+            case SHORT_TELEPORT -> ClientText.text("gui.tiktokchaos.rule_editor.type_radius");
+            case SET_WEATHER, FREEZE_PLAYER -> ClientText.text("gui.tiktokchaos.rule_editor.type_duration");
+            case LAUNCH_PLAYER -> ClientText.text("gui.tiktokchaos.rule_editor.type_strength");
+            case PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN ->
+                    ClientText.text("gui.tiktokchaos.rule_editor.type_quantity");
+            case SPAWN_VIEWER_BOSS -> ClientText.text("gui.tiktokchaos.rule_editor.type_unique_boss");
+            case REVERSIBLE_BLOCK_BOX -> ClientText.text("gui.tiktokchaos.rule_editor.type_safety_limit");
+            default -> ClientText.text("gui.tiktokchaos.rule_editor.action_type");
         };
     }
 
     private String targetLabel(ActionSpec action) {
         return switch (action.type) {
-            case SPAWN_ENTITY -> "Mob / catálogo visual";
-            case SPAWN_VIEWER_BOSS -> "Mob do boss / catálogo";
-            case GIVE_ITEM -> "Item / catálogo visual";
-            case APPLY_EFFECT -> "Efeito / duração";
-            case MESSAGE -> "Mensagem exibida";
-            case CENTER_MESSAGE -> "Mensagem central";
-            case PLAY_SOUND -> "ID do som";
-            case VISUAL_ITEM_RAIN, GIFT_CANNON -> "Item visual";
-            default -> "Configuração automática";
+            case SPAWN_ENTITY -> ClientText.text("gui.tiktokchaos.rule_editor.mob_catalog");
+            case SPAWN_VIEWER_BOSS -> ClientText.text("gui.tiktokchaos.rule_editor.boss_catalog");
+            case GIVE_ITEM -> ClientText.text("gui.tiktokchaos.rule_editor.item_catalog");
+            case APPLY_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.effect_duration");
+            case MESSAGE -> ClientText.text("gui.tiktokchaos.rule_editor.displayed_message");
+            case CENTER_MESSAGE -> ClientText.text("gui.tiktokchaos.rule_editor.center_message");
+            case PLAY_SOUND -> ClientText.text("gui.tiktokchaos.rule_editor.sound_id");
+            case VISUAL_ITEM_RAIN, GIFT_CANNON -> ClientText.text("gui.tiktokchaos.rule_editor.visual_item");
+            default -> ClientText.text("gui.tiktokchaos.rule_editor.automatic_config");
         };
     }
 
     private String actionSummary(ActionSpec action) {
-        String random = ActionTargets.isRandom(action.target) ? " • aleatório" : "";
+        String random = ActionTargets.isRandom(action.target)
+                ? ClientText.text("gui.tiktokchaos.rule_editor.random_suffix") : "";
         return switch (action.type) {
-            case SPAWN_ENTITY, GIVE_ITEM -> "quantidade " + action.amount + random;
-            case APPLY_EFFECT -> "nível " + (action.amplifier + 1) + " • "
-                    + Math.max(1, action.durationTicks / 20) + "s" + random;
-            case SHORT_TELEPORT -> "raio " + action.radius + " blocos";
-            case SET_WEATHER -> Math.max(1, action.durationTicks / 20) + " segundos";
-            case MESSAGE -> action.message.isBlank() ? "mensagem padrão" : trim(action.message, 24);
-            case COSMETIC_LIGHTNING -> "raio apenas visual";
-            case RANDOM_SAFE_ITEM -> "item seguro aleatório";
-            case RANDOM_POSITIVE_EFFECT -> "efeito positivo aleatório";
-            case RANDOM_NEGATIVE_EFFECT -> "efeito negativo aleatório";
-            case PLAY_SOUND -> action.target.isBlank() ? "som padrão" : trim(action.target, 24);
-            case LAUNCH_PLAYER -> "força " + action.amount;
-            case FREEZE_PLAYER -> Math.max(1, action.durationTicks / 20) + " segundos";
-            case PARTICLE_BURST -> (action.amount * 10) + " partículas";
-            case CENTER_MESSAGE -> action.message.isBlank() ? "mensagem central padrão" : trim(action.message, 24);
-            case VISUAL_ITEM_RAIN -> action.amount + " itens apenas visuais";
-            case GIFT_CANNON -> action.amount + " itens no canhão visual";
-            case LIKE_FOUNTAIN -> (action.amount * 10) + " corações visuais";
-            case SPAWN_VIEWER_BOSS -> "boss limitado com nome do espectador";
-            case REVERSIBLE_BLOCK_BOX -> "caixa com rollback automático";
+            case SPAWN_ENTITY, GIVE_ITEM -> ClientText.text("gui.tiktokchaos.rule_editor.summary_amount",
+                    action.amount, random);
+            case APPLY_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.summary_effect",
+                    action.amplifier + 1, Math.max(1, action.durationTicks / 20), random);
+            case SHORT_TELEPORT -> ClientText.text("gui.tiktokchaos.rule_editor.summary_radius", action.radius);
+            case SET_WEATHER, FREEZE_PLAYER -> ClientText.text("gui.tiktokchaos.seconds",
+                    Math.max(1, action.durationTicks / 20));
+            case MESSAGE -> action.message.isBlank() ? ClientText.text("gui.tiktokchaos.rule_editor.default_message")
+                    : trim(action.message, 24);
+            case COSMETIC_LIGHTNING -> ClientText.text("gui.tiktokchaos.rule_editor.visual_lightning");
+            case RANDOM_SAFE_ITEM -> ClientText.text("gui.tiktokchaos.rule_editor.random_safe_item");
+            case RANDOM_POSITIVE_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.random_positive_effect");
+            case RANDOM_NEGATIVE_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.random_negative_effect");
+            case PLAY_SOUND -> action.target.isBlank() ? ClientText.text("gui.tiktokchaos.rule_editor.default_sound")
+                    : trim(action.target, 24);
+            case LAUNCH_PLAYER -> ClientText.text("gui.tiktokchaos.rule_editor.summary_strength", action.amount);
+            case PARTICLE_BURST -> ClientText.text("gui.tiktokchaos.rule_editor.summary_particles",
+                    action.amount * 10);
+            case CENTER_MESSAGE -> action.message.isBlank()
+                    ? ClientText.text("gui.tiktokchaos.rule_editor.default_center_message") : trim(action.message, 24);
+            case VISUAL_ITEM_RAIN -> ClientText.text("gui.tiktokchaos.rule_editor.summary_visual_items", action.amount);
+            case GIFT_CANNON -> ClientText.text("gui.tiktokchaos.rule_editor.summary_cannon_items", action.amount);
+            case LIKE_FOUNTAIN -> ClientText.text("gui.tiktokchaos.rule_editor.summary_hearts", action.amount * 10);
+            case SPAWN_VIEWER_BOSS -> ClientText.text("gui.tiktokchaos.rule_editor.viewer_boss_summary");
+            case REVERSIBLE_BLOCK_BOX -> ClientText.text("gui.tiktokchaos.rule_editor.rollback_box_summary");
         };
     }
 
@@ -408,67 +421,24 @@ public final class RuleEditorScreen extends Screen {
     }
 
     private Component eventLabel() {
-        return Component.literal("Evento: " + eventName(rule.event));
+        return ClientText.component("gui.tiktokchaos.rule_editor.event", ClientText.event(rule.event));
     }
 
     private Component enabledLabel() {
-        return Component.literal(rule.enabled ? "Ativa" : "Pausada")
+        return ClientText.component(rule.enabled ? "gui.tiktokchaos.active" : "gui.tiktokchaos.paused")
                 .withStyle(rule.enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
     private Component actionTypeLabel(ActionSpec action) {
-        return Component.literal("Ação: " + actionName(action.type));
+        return ClientText.component("gui.tiktokchaos.rule_editor.action", ClientText.action(action.type));
     }
 
     private Component executionLabel() {
-        return Component.literal("Combo: " + switch (rule.execution.mode) {
-            case PER_UNIT -> "por unidade";
-            case ONCE -> "uma vez";
-            case TIERED -> "maior faixa";
-            case SCALED -> "escala";
-        });
+        return ClientText.component("gui.tiktokchaos.rule_editor.combo", ClientText.execution(rule.execution.mode));
     }
 
     private List<ActionSpec> copyActions(List<ActionSpec> actions) {
         return actions.stream().map(ActionSpec::copy).toList();
-    }
-
-    private String eventName(LiveEventType type) {
-        return switch (type) {
-            case LIKE -> "Curtidas";
-            case GIFT -> "Presente";
-            case COMMENT -> "Comentário";
-            case FOLLOW -> "Follow";
-            case SHARE -> "Compartilhamento";
-            case SUBSCRIBE -> "Inscrição";
-            case JOIN -> "Entrada";
-            default -> type.name();
-        };
-    }
-
-    private String actionName(ActionType type) {
-        return switch (type) {
-            case SPAWN_ENTITY -> "Invocar mob";
-            case GIVE_ITEM -> "Dar item";
-            case APPLY_EFFECT -> "Aplicar efeito";
-            case SHORT_TELEPORT -> "Teleporte curto";
-            case COSMETIC_LIGHTNING -> "Raio visual";
-            case SET_WEATHER -> "Chuva temporária";
-            case MESSAGE -> "Mensagem";
-            case RANDOM_SAFE_ITEM -> "Item aleatório";
-            case RANDOM_POSITIVE_EFFECT -> "Efeito positivo";
-            case RANDOM_NEGATIVE_EFFECT -> "Efeito negativo";
-            case PLAY_SOUND -> "Tocar som";
-            case LAUNCH_PLAYER -> "Lançar jogador";
-            case FREEZE_PLAYER -> "Congelar jogador";
-            case PARTICLE_BURST -> "Explosão de partículas";
-            case CENTER_MESSAGE -> "Mensagem central";
-            case VISUAL_ITEM_RAIN -> "Chuva visual de itens";
-            case GIFT_CANNON -> "Canhão de presentes";
-            case LIKE_FOUNTAIN -> "Fonte de curtidas";
-            case SPAWN_VIEWER_BOSS -> "Boss do espectador";
-            case REVERSIBLE_BLOCK_BOX -> "Caixa reversível";
-        };
     }
 
     private int integer(EditBox field, int fallback) {
@@ -477,7 +447,7 @@ public final class RuleEditorScreen extends Screen {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Número inválido: " + value);
+            throw new IllegalArgumentException(ClientText.text("gui.tiktokchaos.invalid_number", value));
         }
     }
 
@@ -487,7 +457,7 @@ public final class RuleEditorScreen extends Screen {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Número inválido: " + value);
+            throw new IllegalArgumentException(ClientText.text("gui.tiktokchaos.invalid_number", value));
         }
     }
 

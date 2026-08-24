@@ -50,12 +50,13 @@ final class VisualTargetCatalog {
     }
 
     private static Entry randomEntry(Kind kind) {
+        String name = ClientText.text("gui.tiktokchaos.picker.random_all_mods");
         return switch (kind) {
-            case ENTITY -> Entry.item(ActionTargets.RANDOM_TARGET, "Aleatório (todos os mods)",
+            case ENTITY -> Entry.item(ActionTargets.RANDOM_TARGET, name,
                     new ItemStack(Items.SPAWNER));
-            case ITEM -> Entry.item(ActionTargets.RANDOM_TARGET, "Aleatório (todos os mods)",
+            case ITEM -> Entry.item(ActionTargets.RANDOM_TARGET, name,
                     new ItemStack(Items.CHEST));
-            case EFFECT -> Entry.item(ActionTargets.RANDOM_TARGET, "Aleatório (todos os mods)",
+            case EFFECT -> Entry.item(ActionTargets.RANDOM_TARGET, name,
                     new ItemStack(Items.POTION));
         };
     }
@@ -105,24 +106,24 @@ final class VisualTargetCatalog {
     }
 
     enum Kind {
-        ENTITY("Escolher mob", "mobs"),
-        ITEM("Escolher item", "itens"),
-        EFFECT("Escolher efeito", "efeitos");
+        ENTITY("gui.tiktokchaos.picker.entity_title", "gui.tiktokchaos.picker.entity_count"),
+        ITEM("gui.tiktokchaos.picker.item_title", "gui.tiktokchaos.picker.item_count"),
+        EFFECT("gui.tiktokchaos.picker.effect_title", "gui.tiktokchaos.picker.effect_count");
 
-        private final String title;
-        private final String plural;
+        private final String titleKey;
+        private final String countKey;
 
-        Kind(String title, String plural) {
-            this.title = title;
-            this.plural = plural;
+        Kind(String titleKey, String countKey) {
+            this.titleKey = titleKey;
+            this.countKey = countKey;
         }
 
-        String title() {
-            return title;
+        String titleKey() {
+            return titleKey;
         }
 
-        String plural() {
-            return plural;
+        String countKey() {
+            return countKey;
         }
     }
 

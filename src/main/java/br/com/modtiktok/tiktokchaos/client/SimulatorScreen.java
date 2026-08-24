@@ -18,9 +18,9 @@ public final class SimulatorScreen extends Screen {
 
     private final Screen parent;
     private LiveEventType type = LiveEventType.GIFT;
-    private String username = "Teste";
+    private String username = "Test";
     private String giftId = "5655";
-    private String giftName = "Rosa";
+    private String giftName = "Rose";
     private String unitCoins = "1";
     private String amount = "3";
     private String likes = "100";
@@ -35,7 +35,7 @@ public final class SimulatorScreen extends Screen {
     private SimulationResult result;
 
     public SimulatorScreen(Screen parent) {
-        super(Component.literal("Simulador detalhado"));
+        super(ClientText.component("gui.tiktokchaos.simulator.title"));
         this.parent = parent;
     }
 
@@ -43,36 +43,37 @@ public final class SimulatorScreen extends Screen {
     protected void init() {
         int left = (width - 560) / 2;
         int top = Math.max(12, (height - 330) / 2);
-        usernameField = field(left + 20, top + 54, 180, username, "Espectador");
-        addRenderableWidget(Button.builder(Component.literal("Tipo: " + type.name()), button -> {
+        usernameField = field(left + 20, top + 54, 180, username, "gui.tiktokchaos.simulator.viewer_hint");
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.simulator.type",
+                ClientText.event(type)), button -> {
             saveDraft();
             int index = (indexOf(type) + 1) % TYPES.length;
             type = TYPES[index];
             rebuildScreen();
         }).bounds(left + 212, top + 54, 170, 22).build());
 
-        giftIdField = field(left + 20, top + 100, 88, giftId, "ID");
-        giftNameField = field(left + 116, top + 100, 176, giftName, "Nome do presente");
-        unitCoinsField = field(left + 300, top + 100, 104, unitCoins, "Moedas/un.");
-        amountField = field(left + 412, top + 100, 128, amount, "Quantidade");
-        likesField = field(left + 20, top + 146, 88, likes, "Curtidas");
-        commentField = field(left + 116, top + 146, 424, comment, "Comentário");
+        giftIdField = field(left + 20, top + 100, 88, giftId, "gui.tiktokchaos.simulator.id_hint");
+        giftNameField = field(left + 116, top + 100, 176, giftName, "gui.tiktokchaos.simulator.gift_name_hint");
+        unitCoinsField = field(left + 300, top + 100, 104, unitCoins, "gui.tiktokchaos.simulator.unit_coins_hint");
+        amountField = field(left + 412, top + 100, 128, amount, "gui.tiktokchaos.simulator.amount_hint");
+        likesField = field(left + 20, top + 146, 88, likes, "gui.tiktokchaos.simulator.likes_hint");
+        commentField = field(left + 116, top + 146, 424, comment, "gui.tiktokchaos.simulator.comment_hint");
 
-        addRenderableWidget(Button.builder(Component.literal("Prévia"), button -> run(false))
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.preview"), button -> run(false))
                 .bounds(left + 20, top + 188, 120, 22).build());
-        Button execute = Button.builder(Component.literal("Executar no mundo"), button -> run(true))
+        Button execute = Button.builder(ClientText.component("gui.tiktokchaos.simulator.execute_world"), button -> run(true))
                 .bounds(left + 148, top + 188, 164, 22).build();
         execute.active = TikTokChaosMod.runtime().isWorldActive() && !TikTokChaosMod.runtime().areActionsPaused();
         addRenderableWidget(execute);
-        addRenderableWidget(Button.builder(Component.literal("Fechar"), button -> onClose())
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.close"), button -> onClose())
                 .bounds(left + 460, top + 292, 80, 22).build());
     }
 
-    private EditBox field(int x, int y, int width, String value, String hint) {
-        EditBox field = new EditBox(font, x, y, width, 22, Component.literal(hint));
+    private EditBox field(int x, int y, int width, String value, String hintKey) {
+        EditBox field = new EditBox(font, x, y, width, 22, ClientText.component(hintKey));
         field.setMaxLength(160);
         field.setValue(value);
-        field.setHint(Component.literal(hint));
+        field.setHint(ClientText.component(hintKey));
         addRenderableWidget(field);
         return field;
     }
@@ -108,24 +109,29 @@ public final class SimulatorScreen extends Screen {
         graphics.fillGradient(left, top, left + 560, top + 330, 0xF21A1024, 0xF20E1420);
         graphics.fill(left, top, left + 4, top + 330, 0xFFE83E8C);
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawString(font, "SIMULADOR DETALHADO", left + 20, top + 18, 0xFF66F0C8, true);
-        graphics.drawString(font, "Usuário", left + 20, top + 42, 0xFFCFC4D6, true);
-        graphics.drawString(font, "Presente: ID, nome, moedas por unidade e quantidade", left + 20, top + 88,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.heading"), left + 20, top + 18,
+                0xFF66F0C8, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.user"), left + 20, top + 42,
                 0xFFCFC4D6, true);
-        graphics.drawString(font, "Curtidas", left + 20, top + 134, 0xFFCFC4D6, true);
-        graphics.drawString(font, "Comentário", left + 116, top + 134, 0xFFCFC4D6, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.gift_fields"), left + 20, top + 88,
+                0xFFCFC4D6, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.likes"), left + 20, top + 134,
+                0xFFCFC4D6, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.comment"), left + 116, top + 134,
+                0xFFCFC4D6, true);
         renderResult(graphics, left, top);
     }
 
     private void renderResult(GuiGraphics graphics, int left, int top) {
         if (result == null) {
-            graphics.drawString(font, "A prévia não altera cooldowns, metas ou a fila.", left + 20, top + 226,
+            graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator.preview_note"), left + 20,
+                    top + 226,
                     0xFFB8AFC0, true);
             return;
         }
         int color = result.executed() ? 0xFF66F0C8 : 0xFFFFD166;
-        String headline = (result.executed() ? "EXECUTADO" : "PRÉVIA") + " • " + result.matchedActions()
-                + " ações correspondentes • " + result.queuedActions() + " enfileiradas";
+        String headline = ClientText.text(result.executed() ? "gui.tiktokchaos.simulator.executed_result"
+                : "gui.tiktokchaos.simulator.preview_result", result.matchedActions(), result.queuedActions());
         graphics.drawString(font, headline, left + 20, top + 226, color, true);
         int line = 0;
         for (String action : result.actions()) {
@@ -134,7 +140,8 @@ public final class SimulatorScreen extends Screen {
         }
         for (String warning : result.warnings()) {
             if (line >= 4) break;
-            graphics.drawString(font, trim(warning, 78), left + 20, top + 244 + line++ * 13, 0xFFFF6B81, true);
+            graphics.drawString(font, trim(ClientText.runtimeMessage(warning), 78), left + 20,
+                    top + 244 + line++ * 13, 0xFFFF6B81, true);
         }
     }
 

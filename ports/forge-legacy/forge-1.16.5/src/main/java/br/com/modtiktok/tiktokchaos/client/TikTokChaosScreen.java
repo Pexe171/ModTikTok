@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.ITextComponent;
 
@@ -17,7 +18,7 @@ public final class TikTokChaosScreen extends Screen {
     private TextFieldWidget usernameField;
 
     public TikTokChaosScreen(Screen parent) {
-        super(new StringTextComponent("TikTok Chaos"));
+        super(new TranslationTextComponent("gui.tiktokchaos.title"));
         this.parent = parent;
     }
 
@@ -27,21 +28,23 @@ public final class TikTokChaosScreen extends Screen {
         int top = Math.max(18, (height - 255) / 2);
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
         usernameField = new TextFieldWidget(font, left + 18, top + 58, PANEL_WIDTH - 36, 22,
-                new StringTextComponent("Usuario do TikTok"));
+                new TranslationTextComponent("gui.tiktokchaos.username"));
         usernameField.setMaxLength(64);
         usernameField.setValue(runtime.config().connection.username);
-        usernameField.setSuggestion("@usuario");
+        usernameField.setSuggestion(ClientText.text("gui.tiktokchaos.username_hint"));
         addButton(usernameField);
 
         Button connection = new Button(left + 18, top + 92, 126, 22,
-                new StringTextComponent(runtime.isConnectionRunning() ? "Desconectar" : "Conectar"), button -> {
+                new TranslationTextComponent(runtime.isConnectionRunning() ? "gui.tiktokchaos.disconnect"
+                        : "gui.tiktokchaos.connect"), button -> {
                     saveUsername();
                     if (runtime.isConnectionRunning()) runtime.disconnect(); else runtime.connect();
                     rebuildScreen();
                 });
         connection.active = runtime.isWorldActive();
         addButton(connection);
-        addButton(new Button(left + 152, top + 92, 92, 22, new StringTextComponent("Salvar"), button -> {
+        addButton(new Button(left + 152, top + 92, 92, 22,
+                new TranslationTextComponent("gui.tiktokchaos.save"), button -> {
             saveUsername();
             runtime.saveConfig();
         }));
@@ -54,16 +57,16 @@ public final class TikTokChaosScreen extends Screen {
             if (runtime.areActionsPaused()) runtime.resumeActions(); else runtime.pauseActions();
             rebuildScreen();
         }));
-        addSimulation(left + 18, top + 168, "100 curtidas", LiveEventType.LIKE);
-        addSimulation(left + 217, top + 168, "Presente (120)", LiveEventType.GIFT);
-        addSimulation(left + 18, top + 198, "Comentario !zumbi", LiveEventType.COMMENT);
-        addSimulation(left + 217, top + 198, "Novo follow", LiveEventType.FOLLOW);
+        addSimulation(left + 18, top + 168, "gui.tiktokchaos.simulate_likes", LiveEventType.LIKE);
+        addSimulation(left + 217, top + 168, "gui.tiktokchaos.simulate_gift", LiveEventType.GIFT);
+        addSimulation(left + 18, top + 198, "gui.tiktokchaos.simulate_comment", LiveEventType.COMMENT);
+        addSimulation(left + 217, top + 198, "gui.tiktokchaos.simulate_follow", LiveEventType.FOLLOW);
         addButton(new Button(left + PANEL_WIDTH - 82, top + 222, 82, 20,
-                new StringTextComponent("Fechar"), button -> onClose()));
+                new TranslationTextComponent("gui.tiktokchaos.close"), button -> onClose()));
     }
 
-    private void addSimulation(int x, int y, String label, LiveEventType type) {
-        Button button = new Button(x, y, 190, 24, new StringTextComponent(label),
+    private void addSimulation(int x, int y, String key, LiveEventType type) {
+        Button button = new Button(x, y, 190, 24, new TranslationTextComponent(key),
                 pressed -> TikTokChaosMod.runtime().simulate(type));
         button.active = TikTokChaosMod.runtime().isWorldActive();
         addButton(button);
@@ -81,24 +84,29 @@ public final class TikTokChaosScreen extends Screen {
         font.drawShadow(matrixStack, "TIKTOK", left, top + 4, 0xFFE83E8C);
         font.drawShadow(matrixStack, "CHAOS", left + 44, top + 4, 0xFF66F0C8);
         font.drawShadow(matrixStack, "Forge 1.16.5", left + PANEL_WIDTH - 82, top + 4, 0xFFC6BCCE);
-        font.drawShadow(matrixStack, "Conta que esta transmitindo", left + 18, top + 44, 0xFFCFC4D6);
+        font.drawShadow(matrixStack, ClientText.text("gui.tiktokchaos.streaming_account"), left + 18, top + 44,
+                0xFFCFC4D6);
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
         int color = runtime.status() == br.com.modtiktok.tiktokchaos.live.ConnectionStatus.CONNECTED
                 ? 0xFF66F0C8 : 0xFFFFC857;
-        font.drawShadow(matrixStack, runtime.status().label() + " - ACOES " + runtime.runState().label(),
+        font.drawShadow(matrixStack, ClientText.text("gui.tiktokchaos.connection_state_legacy",
+                        ClientText.status(runtime.status()), ClientText.runState(runtime.runState())),
                 left + 224, top + 126, color);
-        font.drawShadow(matrixStack, "F9 = emergencia e limpeza", left + 18, top + 150, 0xFFFF6B81);
+        font.drawShadow(matrixStack, ClientText.text("gui.tiktokchaos.f9_cleanup_legacy"), left + 18, top + 150,
+                0xFFFF6B81);
     }
 
     private ITextComponent reconnectLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().connection.autoReconnect;
-        return new StringTextComponent((enabled ? "[x] " : "[ ] ") + "Reconexao automatica")
+        return new StringTextComponent(enabled ? "[x] " : "[ ] ")
+                .append(new TranslationTextComponent("gui.tiktokchaos.auto_reconnect"))
                 .withStyle(enabled ? TextFormatting.GREEN : TextFormatting.GRAY);
     }
 
     private ITextComponent runStateLabel() {
         boolean paused = TikTokChaosMod.runtime().areActionsPaused();
-        return new StringTextComponent(paused ? "> Retomar acoes" : "|| Pausar acoes")
+        return new TranslationTextComponent(paused ? "gui.tiktokchaos.resume_actions_legacy"
+                        : "gui.tiktokchaos.pause_actions_legacy")
                 .withStyle(paused ? TextFormatting.GREEN : TextFormatting.YELLOW);
     }
 

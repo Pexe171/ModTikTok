@@ -44,7 +44,7 @@ public final class TikTokChaosScreen extends Screen {
 
         for (int index = 0; index < Tab.values().length; index++) {
             Tab value = Tab.values()[index];
-            addRenderableWidget(Button.builder(Component.literal(value.label), button -> setTab(value))
+            addRenderableWidget(Button.builder(ClientText.component(value.key), button -> setTab(value))
                     .bounds(left + index * tabWidth, top + 32, tabWidth - 2, 20).build());
         }
 
@@ -68,7 +68,7 @@ public final class TikTokChaosScreen extends Screen {
                 Component.translatable("gui.tiktokchaos.username"));
         usernameField.setMaxLength(64);
         usernameField.setValue(runtime.config().connection.username);
-        usernameField.setHint(Component.literal("@usuario"));
+        usernameField.setHint(ClientText.component("gui.tiktokchaos.username_hint"));
         addRenderableWidget(usernameField);
 
         Component connectionLabel = runtime.isConnectionRunning()
@@ -112,11 +112,11 @@ public final class TikTokChaosScreen extends Screen {
                 TikTokChaosMod.runtime().saveConfig();
                 rebuildScreen();
             }).bounds(left + 18, y, PANEL_WIDTH - 128, 19).build());
-            addRenderableWidget(Button.builder(Component.literal("Editar"), button -> {
+            addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.edit"), button -> {
                 if (minecraft != null) minecraft.setScreen(new RuleEditorScreen(this, rule, false));
             }).bounds(left + PANEL_WIDTH - 104, y, 86, 19).build());
         }
-        addRenderableWidget(Button.builder(Component.literal("+ Nova regra"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.new_rule"), button -> {
             Rule rule = RuleEditorScreen.newRule();
             if (minecraft != null) minecraft.setScreen(new RuleEditorScreen(this, rule, true));
         }).bounds(left + 92, top + 218, 112, 20).build());
@@ -137,10 +137,10 @@ public final class TikTokChaosScreen extends Screen {
     }
 
     private void initHistory(int left, int top) {
-        addRenderableWidget(Button.builder(Component.literal("Limpar fila"), button -> TikTokChaosMod.runtime().clearQueue())
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.clear_queue"), button -> TikTokChaosMod.runtime().clearQueue())
                 .bounds(left + 18, top + 212, 96, 20).build());
-        addRenderableWidget(Button.builder(Component.literal((TikTokChaosMod.runtime().config().hud.showChat
-                ? "✓ " : "✕ ") + "Chat no HUD"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(TikTokChaosMod.runtime().config().hud.showChat,
+                "gui.tiktokchaos.chat_hud"), button -> {
             TikTokChaosMod.runtime().config().hud.showChat = !TikTokChaosMod.runtime().config().hud.showChat;
             TikTokChaosMod.runtime().saveConfig();
             rebuildScreen();
@@ -149,11 +149,11 @@ public final class TikTokChaosScreen extends Screen {
 
     private void initSafety(int left, int top) {
         TikTokChaosConfig.Safety safety = TikTokChaosMod.runtime().config().safety;
-        addCounter(left, top + 74, "Ações por segundo", () -> safety.maxActionsPerSecond,
+        addCounter(left, top + 74, () -> safety.maxActionsPerSecond,
                 value -> safety.maxActionsPerSecond = clamp(value, 1, 20));
-        addCounter(left, top + 110, "Limite de mobs", () -> safety.maxTrackedMobs,
+        addCounter(left, top + 110, () -> safety.maxTrackedMobs,
                 value -> safety.maxTrackedMobs = clamp(value, 1, 100));
-        addCounter(left, top + 146, "Tempo dos mobs (s)", () -> safety.mobLifetimeSeconds,
+        addCounter(left, top + 146, () -> safety.mobLifetimeSeconds,
                 value -> safety.mobLifetimeSeconds = clamp(value, 10, 600));
         addRenderableWidget(Button.builder(hudLabel(), button -> {
             TikTokChaosMod.runtime().config().hud.enabled = !TikTokChaosMod.runtime().config().hud.enabled;
@@ -192,13 +192,13 @@ public final class TikTokChaosScreen extends Screen {
             LiveEventType type = types[index];
             int column = index % 2;
             int row = index / 2;
-            Button button = Button.builder(Component.literal(simulationLabel(type)),
+            Button button = Button.builder(ClientText.component(simulationKey(type)),
                     pressed -> TikTokChaosMod.runtime().simulate(type))
                     .bounds(left + 18 + column * 199, top + 76 + row * 32, 190, 24).build();
             button.active = TikTokChaosMod.runtime().isWorldActive();
             addRenderableWidget(button);
         }
-        addRenderableWidget(Button.builder(Component.literal("Abrir simulador detalhado"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.open_detailed_simulator"), button -> {
             if (minecraft != null) minecraft.setScreen(new SimulatorScreen(this));
         }).bounds(left + 18, top + 204, 190, 20).build());
     }
@@ -213,7 +213,8 @@ public final class TikTokChaosScreen extends Screen {
         for (int index = first; index < last; index++) {
             PresetDocument preset = presets.get(index);
             String prefix = preset.id.equals(selectedPresetId) ? "◆ " : "◇ ";
-            addRenderableWidget(Button.builder(Component.literal(prefix + trim(preset.name, 46)), button -> {
+            String name = ClientText.configuredName("preset", preset.id, preset.name);
+            addRenderableWidget(Button.builder(Component.literal(prefix + trim(name, 46)), button -> {
                 selectedPresetId = preset.id;
                 rebuildScreen();
             }).bounds(left + 18, top + 70 + (index - first) * 22, PANEL_WIDTH - 36, 20).build());
@@ -232,15 +233,15 @@ public final class TikTokChaosScreen extends Screen {
             next.active = presetPage + 1 < pageCount;
             addRenderableWidget(next);
         }
-        addRenderableWidget(Button.builder(Component.literal("Substituir"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.replace"), button -> {
             runtime.applyPreset(selectedPresetId, PresetApplyMode.REPLACE);
             rebuildScreen();
         }).bounds(left + 92, top + 160, 126, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Mesclar"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.merge"), button -> {
             runtime.applyPreset(selectedPresetId, PresetApplyMode.MERGE);
             rebuildScreen();
         }).bounds(left + 224, top + 160, 92, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Exportar atual"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.export_current"), button -> {
             runtime.exportPreset();
             rebuildScreen();
         }).bounds(left + 18, top + 188, 132, 20).build());
@@ -248,43 +249,43 @@ public final class TikTokChaosScreen extends Screen {
 
     private void initSession(int left, int top) {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
-        addRenderableWidget(Button.builder(Component.literal((runtime.config().overlay.enabled ? "✓ " : "✕ ")
-                + "Overlay OBS local"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(runtime.config().overlay.enabled,
+                "gui.tiktokchaos.local_obs_overlay"), button -> {
             runtime.config().overlay.enabled = !runtime.config().overlay.enabled;
             runtime.saveConfig();
             rebuildScreen();
         }).bounds(left + 250, top + 148, 162, 20).build());
-        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.showGoals ? "✓ " : "✕ ")
-                + "Metas no HUD"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(runtime.config().hud.showGoals,
+                "gui.tiktokchaos.goals_hud"), button -> {
             runtime.config().hud.showGoals = !runtime.config().hud.showGoals;
             runtime.saveConfig();
             rebuildScreen();
         }).bounds(left + 18, top + 178, 120, 20).build());
-        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.showRanking ? "✓ " : "✕ ")
-                + "Ranking no HUD"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(runtime.config().hud.showRanking,
+                "gui.tiktokchaos.ranking_hud"), button -> {
             runtime.config().hud.showRanking = !runtime.config().hud.showRanking;
             runtime.saveConfig();
             rebuildScreen();
         }).bounds(left + 146, top + 178, 126, 20).build());
-        addRenderableWidget(Button.builder(Component.literal((runtime.config().hud.hideViewerNames ? "✓ " : "✕ ")
-                + "Ocultar nomes"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(runtime.config().hud.hideViewerNames,
+                "gui.tiktokchaos.hide_names"), button -> {
             runtime.config().hud.hideViewerNames = !runtime.config().hud.hideViewerNames;
             runtime.saveConfig();
             rebuildScreen();
         }).bounds(left + 280, top + 178, 132, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Zerar sessão"), button -> {
+        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.reset_session"), button -> {
             runtime.resetSessionStats();
             rebuildScreen();
         }).bounds(left + 18, top + 204, 110, 20).build());
-        addRenderableWidget(Button.builder(Component.literal((runtime.config().avatars.enabled ? "✓ " : "✕ ")
-                + "Avatares temporários"), button -> {
+        addRenderableWidget(Button.builder(toggleLabel(runtime.config().avatars.enabled,
+                "gui.tiktokchaos.temporary_avatars"), button -> {
             runtime.config().avatars.enabled = !runtime.config().avatars.enabled;
             runtime.saveConfig();
             rebuildScreen();
         }).bounds(left + 136, top + 204, 204, 20).build());
     }
 
-    private void addCounter(int left, int y, String label, IntGetter getter, IntSetter setter) {
+    private void addCounter(int left, int y, IntGetter getter, IntSetter setter) {
         addRenderableWidget(Button.builder(Component.literal("−"), button -> {
             setter.set(getter.get() - 1);
             TikTokChaosMod.runtime().saveConfig();
@@ -314,7 +315,8 @@ public final class TikTokChaosScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawString(font, "TIKTOK", left, top + 4, 0xFFE83E8C, true);
         graphics.drawString(font, "CHAOS", left + 44, top + 4, 0xFF66F0C8, true);
-        graphics.drawString(font, "NeoForge 1.21.1", left + PANEL_WIDTH - 102, top + 4, 0xFFC6BCCE, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.platform"), left + PANEL_WIDTH - 102, top + 4,
+                0xFFC6BCCE, true);
 
         switch (tab) {
             case CONNECTION -> renderConnection(graphics, left, top);
@@ -329,92 +331,110 @@ public final class TikTokChaosScreen extends Screen {
 
     private void renderConnection(GuiGraphics graphics, int left, int top) {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
-        graphics.drawString(font, "Conta que está transmitindo", left + 18, top + 64, 0xFFCFC4D6, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.streaming_account"), left + 18, top + 64,
+                0xFFCFC4D6, true);
         int color = runtime.status() == br.com.modtiktok.tiktokchaos.live.ConnectionStatus.CONNECTED
                 ? 0xFF66F0C8 : 0xFFFFC857;
-        graphics.drawString(font, "F9: parada de emergência + limpeza", left + 224, top + 149,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.f9_cleanup"), left + 224, top + 149,
                 0xFFFF6B81, true);
-        graphics.drawString(font, "● " + runtime.status().label() + " • AÇÕES " + runtime.runState().label(),
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.connection_state", ClientText.status(runtime.status()),
+                        ClientText.runState(runtime.runState())),
                 left + 18, top + 176, color, true);
-        graphics.drawString(font, trim(runtime.statusDetail(), 60), left + 18, top + 192, 0xFFCFC4D6, true);
+        graphics.drawString(font, trim(ClientText.runtimeMessage(runtime.statusDetail()), 60), left + 18, top + 192,
+                0xFFCFC4D6, true);
         String error = runtime.configManager().getLastError();
-        if (!error.isBlank()) graphics.drawString(font, trim(error, 60), left + 18, top + 208, 0xFFFF6B81, true);
+        if (!error.isBlank()) graphics.drawString(font, trim(ClientText.runtimeMessage(error), 60), left + 18,
+                top + 208, 0xFFFF6B81, true);
     }
 
     private void renderRules(GuiGraphics graphics, int left, int top) {
         int enabled = (int) TikTokChaosMod.runtime().config().rules.stream().filter(rule -> rule.enabled).count();
-        graphics.drawString(font, enabled + " regras ativas • clique para ligar/desligar",
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.active_rules", enabled),
                 left + 18, top + 56, 0xFFBDB0C7, true);
     }
 
     private void renderHistory(GuiGraphics graphics, int left, int top) {
         List<LiveEvent> events = TikTokChaosMod.runtime().historySnapshot();
-        graphics.drawString(font, "Últimos eventos desta sessão", left + 18, top + 60, 0xFFBDB0C7, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.recent_events"), left + 18, top + 60,
+                0xFFBDB0C7, true);
         int count = Math.min(9, events.size());
         for (int index = 0; index < count; index++) {
             LiveEvent event = events.get(index);
             int color = event.type() == LiveEventType.GIFT ? 0xFFFFD166 : 0xFFD9CEDF;
-            graphics.drawString(font, trim(event.summary(), 60), left + 18, top + 78 + index * 14, color, true);
+            graphics.drawString(font, trim(ClientText.eventSummary(event), 60), left + 18, top + 78 + index * 14,
+                    color, true);
         }
         if (events.isEmpty()) {
-            graphics.drawString(font, "Nenhum evento recebido ainda.", left + 18, top + 82, 0xFFB8AFC0, true);
+            graphics.drawString(font, ClientText.text("gui.tiktokchaos.no_events"), left + 18, top + 82,
+                    0xFFB8AFC0, true);
         }
-        graphics.drawString(font, trim(TikTokChaosMod.runtime().lastAction(), 60), left + 18, top + 198,
+        graphics.drawString(font, trim(ClientText.runtimeMessage(TikTokChaosMod.runtime().lastAction()), 60),
+                left + 18, top + 198,
                 0xFF66F0C8, true);
     }
 
     private void renderSafety(GuiGraphics graphics, int left, int top) {
         TikTokChaosConfig.Safety safety = TikTokChaosMod.runtime().config().safety;
-        graphics.drawString(font, "Limites que protegem FPS e mundo", left + 18, top + 58, 0xFFBDB0C7, true);
-        drawCounter(graphics, left, top + 74, "Ações por segundo", safety.maxActionsPerSecond);
-        drawCounter(graphics, left, top + 110, "Limite de mobs", safety.maxTrackedMobs);
-        drawCounter(graphics, left, top + 146, "Tempo dos mobs (s)", safety.mobLifetimeSeconds);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.safety_intro"), left + 18, top + 58,
+                0xFFBDB0C7, true);
+        drawCounter(graphics, left, top + 74, ClientText.text("gui.tiktokchaos.actions_per_second"),
+                safety.maxActionsPerSecond);
+        drawCounter(graphics, left, top + 110, ClientText.text("gui.tiktokchaos.mob_limit"), safety.maxTrackedMobs);
+        drawCounter(graphics, left, top + 146, ClientText.text("gui.tiktokchaos.mob_lifetime"),
+                safety.mobLifetimeSeconds);
     }
 
     private void renderSimulator(GuiGraphics graphics, int left, int top) {
-        graphics.drawString(font, "Teste regras sem abrir uma LIVE", left + 18, top + 58, 0xFFBDB0C7, true);
-        graphics.drawString(font, "Mesmo pipeline e limites reais.", left + 216, top + 210, 0xFFB8AFC0, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator_intro"), left + 18, top + 58,
+                0xFFBDB0C7, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.simulator_limits"), left + 216, top + 210,
+                0xFFB8AFC0, true);
     }
 
     private void renderPresets(GuiGraphics graphics, int left, int top) {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
-        graphics.drawString(font, "Prévia antes de substituir ou mesclar", left + 18, top + 56,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.preset_intro"), left + 18, top + 56,
                 0xFFBDB0C7, true);
         try {
             PresetPreview replace = runtime.previewPreset(selectedPresetId, PresetApplyMode.REPLACE);
-            String preview = replace.resultingRules() + " regras • " + replace.disabledRules()
-                    + " desativadas • backup automático";
+            String preview = ClientText.text("gui.tiktokchaos.preset_preview", replace.resultingRules(),
+                    replace.disabledRules());
             graphics.drawString(font, preview, left + 158, top + 194, 0xFF66F0C8, true);
         } catch (RuntimeException error) {
             graphics.drawString(font, trim(error.getMessage(), 48), left + 158, top + 194, 0xFFFF6B81, true);
         }
-        graphics.drawString(font, "Pasta: config/tiktok-chaos/presets", left + 18, top + 212,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.preset_folder"), left + 18, top + 212,
                 0xFFB8AFC0, true);
     }
 
     private void renderSession(GuiGraphics graphics, int left, int top) {
         SessionStats.Snapshot stats = TikTokChaosMod.runtime().sessionStats();
-        graphics.drawString(font, "ESTATÍSTICAS SOMENTE DESTA SESSÃO", left + 18, top + 56, 0xFF66F0C8, true);
-        graphics.drawString(font, "Moedas " + stats.coins() + " • presentes " + stats.gifts()
-                + " • curtidas " + stats.likes(), left + 18, top + 76, 0xFFE3D9EA, true);
-        graphics.drawString(font, "Ações: " + stats.executedActions() + " executadas • " + stats.failedActions()
-                + " falhas • " + stats.droppedActions() + " descartadas", left + 18, top + 92,
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.session_only"), left + 18, top + 56,
+                0xFF66F0C8, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.session_totals", stats.coins(), stats.gifts(),
+                stats.likes()), left + 18, top + 76, 0xFFE3D9EA, true);
+        graphics.drawString(font, ClientText.text("gui.tiktokchaos.action_totals", stats.executedActions(),
+                stats.failedActions(), stats.droppedActions()), left + 18, top + 92,
                 0xFFE3D9EA, true);
         int y = top + 112;
         for (int index = 0; index < Math.min(2, stats.goals().size()); index++) {
             SessionStats.GoalProgress goal = stats.goals().get(index);
-            graphics.drawString(font, "Meta " + goal.name() + ": " + goal.current() + "/" + goal.target(),
+            String goalName = ClientText.configuredName("goal", goal.id(), goal.name());
+            graphics.drawString(font, ClientText.text("gui.tiktokchaos.goal_progress", goalName, goal.current(),
+                            goal.target()),
                     left + 18, y, goal.complete() ? 0xFF66F0C8 : 0xFFFFD166, true);
             y += 14;
         }
         for (int index = 0; index < Math.min(2, stats.ranking().size()); index++) {
             SessionStats.ViewerRank viewer = stats.ranking().get(index);
-            graphics.drawString(font, (index + 1) + ". " + trim(viewer.name(), 24) + " • " + viewer.coins()
-                    + " moedas • " + viewer.mobsDefeated() + " mobs", left + 220, top + 112 + index * 14,
+            graphics.drawString(font, ClientText.text("gui.tiktokchaos.viewer_rank", index + 1,
+                            trim(ClientText.viewerName(viewer.name()), 24), viewer.coins(), viewer.mobsDefeated()),
+                    left + 220, top + 112 + index * 14,
                     0xFFBDB0C7, true);
         }
         String overlay = TikTokChaosMod.runtime().overlayUrl();
-        graphics.drawString(font, overlay.isBlank() ? "Overlay OBS desligado" : "OBS: " + trim(overlay, 34),
+        graphics.drawString(font, overlay.isBlank() ? ClientText.text("gui.tiktokchaos.obs_disabled")
+                        : ClientText.text("gui.tiktokchaos.obs_url", trim(overlay, 34)),
                 left + 18, top + 154, overlay.isBlank() ? 0xFFB8AFC0 : 0xFF66F0C8, true);
     }
 
@@ -443,59 +463,65 @@ public final class TikTokChaosScreen extends Screen {
 
     private Component autoReconnectLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().connection.autoReconnect;
-        return Component.literal((enabled ? "✓ " : "✕ ") + "Reconexão automática")
+        return toggleLabel(enabled, "gui.tiktokchaos.auto_reconnect")
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
     private Component hudLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().hud.enabled;
-        return Component.literal((enabled ? "✓ " : "✕ ") + "HUD compacto")
+        return toggleLabel(enabled, "gui.tiktokchaos.compact_hud")
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
     private Component runStateLabel() {
         boolean paused = TikTokChaosMod.runtime().areActionsPaused();
-        return Component.literal(paused ? "▶ Retomar ações" : "Ⅱ Pausar ações")
+        return ClientText.component(paused ? "gui.tiktokchaos.resume_actions" : "gui.tiktokchaos.pause_actions")
                 .withStyle(paused ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
     }
 
     private Component adaptivePerformanceLabel() {
         boolean enabled = TikTokChaosMod.runtime().config().safety.adaptivePerformance;
-        return Component.literal((enabled ? "✓ " : "✕ ") + "Proteção adaptativa de FPS")
+        return toggleLabel(enabled, "gui.tiktokchaos.adaptive_fps")
                 .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
     private Component destructiveActionsLabel() {
         TikTokChaosConfig.Safety safety = TikTokChaosMod.runtime().config().safety;
         if (safety.destructiveActionsEnabled && safety.destructiveActionsConfirmed) {
-            return Component.literal("✓ Mundo reversível ativo • clique para desligar")
+            return ClientText.component("gui.tiktokchaos.reversible_world_active")
                     .withStyle(ChatFormatting.RED);
         }
         if (destructiveConfirmationPending) {
-            return Component.literal("CONFIRMAR: alterar até " + safety.maxChangedBlocks + " blocos e restaurar")
+            return ClientText.component("gui.tiktokchaos.confirm_block_changes", safety.maxChangedBlocks)
                     .withStyle(ChatFormatting.RED);
         }
-        return Component.literal("✕ Ações que alteram blocos (desligadas)").withStyle(ChatFormatting.GRAY);
+        return ClientText.component("gui.tiktokchaos.block_actions_disabled").withStyle(ChatFormatting.GRAY);
     }
 
     private Component ruleLabel(Rule rule) {
-        String state = rule.enabled ? "✓ ATIVA  " : "✕ PAUSADA  ";
-        return Component.literal(state + rule.name)
+        String state = ClientText.text(rule.enabled ? "gui.tiktokchaos.rule_active_prefix"
+                : "gui.tiktokchaos.rule_paused_prefix");
+        String name = ClientText.configuredName("rule", rule.id, rule.name);
+        return Component.literal(state + name)
                 .withStyle(rule.enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY);
     }
 
-    private String simulationLabel(LiveEventType type) {
+    private String simulationKey(LiveEventType type) {
         return switch (type) {
-            case LIKE -> "100 curtidas";
-            case GIFT -> "Presente (120)";
-            case COMMENT -> "Comentário !zumbi";
-            case FOLLOW -> "Novo follow";
-            case SHARE -> "Compartilhamento";
-            case SUBSCRIBE -> "Inscrição";
-            case JOIN -> "Entrada";
-            case ROOM_STATS -> "42 espectadores";
-            default -> type.name();
+            case LIKE -> "gui.tiktokchaos.simulate_likes";
+            case GIFT -> "gui.tiktokchaos.simulate_gift";
+            case COMMENT -> "gui.tiktokchaos.simulate_comment";
+            case FOLLOW -> "gui.tiktokchaos.simulate_follow";
+            case SHARE -> "gui.tiktokchaos.simulate_share";
+            case SUBSCRIBE -> "gui.tiktokchaos.simulate_subscribe";
+            case JOIN -> "gui.tiktokchaos.simulate_join";
+            case ROOM_STATS -> "gui.tiktokchaos.simulate_viewers";
+            default -> "event.tiktokchaos." + type.name().toLowerCase(java.util.Locale.ROOT);
         };
+    }
+
+    private net.minecraft.network.chat.MutableComponent toggleLabel(boolean enabled, String key) {
+        return Component.literal(enabled ? "✓ " : "✕ ").append(ClientText.component(key));
     }
 
     @Override
@@ -520,18 +546,18 @@ public final class TikTokChaosScreen extends Screen {
     }
 
     private enum Tab {
-        CONNECTION("Conexão"),
-        RULES("Regras"),
-        HISTORY("Histórico"),
-        SAFETY("Segurança"),
-        SIMULATOR("Simulador"),
-        PRESETS("Presets"),
-        SESSION("Sessão");
+        CONNECTION("gui.tiktokchaos.tab.connection"),
+        RULES("gui.tiktokchaos.tab.rules"),
+        HISTORY("gui.tiktokchaos.tab.history"),
+        SAFETY("gui.tiktokchaos.tab.safety"),
+        SIMULATOR("gui.tiktokchaos.tab.simulator"),
+        PRESETS("gui.tiktokchaos.tab.presets"),
+        SESSION("gui.tiktokchaos.tab.session");
 
-        private final String label;
+        private final String key;
 
-        Tab(String label) {
-            this.label = label;
+        Tab(String key) {
+            this.key = key;
         }
     }
 

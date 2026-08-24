@@ -28,32 +28,38 @@ public final class TikTokChaosHud {
         graphics.fill(x, y, x + 3, y + height,
                 runtime.areActionsPaused() ? 0xFFFF5D73 : statusColor(runtime.status()));
         graphics.drawString(minecraft.font,
-                "TikTok Chaos • " + runtime.status().label() + " • " + runtime.runState().label(), x + 9, y + 7,
+                ClientText.text("hud.tiktokchaos.header", ClientText.status(runtime.status()),
+                        ClientText.runState(runtime.runState())), x + 9, y + 7,
                 0xFFF4E9FF, false);
 
         LiveEvent event = runtime.lastEvent();
-        String eventText = event == null ? "Aguardando eventos" : truncate(event.summary(), 34);
+        String eventText = event == null ? ClientText.text("hud.tiktokchaos.waiting_events")
+                : truncate(ClientText.eventSummary(event), 34);
         graphics.drawString(minecraft.font, eventText, x + 9, y + 21, 0xFFE3D9EA, false);
         graphics.drawString(minecraft.font,
-                "Fila " + runtime.queueSize() + "  •  Mobs " + runtime.trackedMobCount() + "/"
-                        + runtime.config().safety.maxTrackedMobs
-                        + (runtime.isPerformanceThrottled() ? "  •  PROTEÇÃO FPS" : ""),
+                ClientText.text("hud.tiktokchaos.queue_mobs", runtime.queueSize(), runtime.trackedMobCount(),
+                        runtime.config().safety.maxTrackedMobs)
+                        + (runtime.isPerformanceThrottled() ? ClientText.text("hud.tiktokchaos.fps_protection") : ""),
                 x + 9, y + 35, 0xFFB8AFC2, false);
         int nextY = y + 49;
         if (runtime.config().hud.showGoals && !stats.goals().isEmpty()) {
             SessionStats.GoalProgress goal = stats.goals().get(0);
-            graphics.drawString(minecraft.font, "Meta: " + goal.name() + " " + goal.current() + "/" + goal.target(),
+            String goalName = ClientText.configuredName("goal", goal.id(), goal.name());
+            graphics.drawString(minecraft.font, ClientText.text("hud.tiktokchaos.goal", goalName, goal.current(),
+                            goal.target()),
                     x + 9, nextY, goal.complete() ? 0xFF66F0C8 : 0xFFFFD166, false);
             nextY += 14;
         }
         if (runtime.config().hud.showRanking && !stats.ranking().isEmpty()) {
             SessionStats.ViewerRank leader = stats.ranking().get(0);
-            graphics.drawString(minecraft.font, "Top: " + truncate(leader.name(), 20) + " • " + leader.coins()
-                    + " moedas", x + 9, nextY, 0xFFE3D9EA, false);
+            graphics.drawString(minecraft.font, ClientText.text("hud.tiktokchaos.top",
+                    truncate(ClientText.viewerName(leader.name()), 20), leader.coins()), x + 9, nextY,
+                    0xFFE3D9EA, false);
             nextY += 14;
         }
         if (runtime.config().hud.showChat && !runtime.latestChatLine().isBlank()) {
-            graphics.drawString(minecraft.font, "Chat: " + truncate(runtime.latestChatLine(), 34), x + 9, nextY,
+            graphics.drawString(minecraft.font, ClientText.text("hud.tiktokchaos.chat",
+                    truncate(runtime.latestChatLine(), 34)), x + 9, nextY,
                     0xFFCFC4D6, false);
         }
     }

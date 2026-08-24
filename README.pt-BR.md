@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 até 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge e NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 até 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-  <img alt="Versão 1.4.0" src="https://img.shields.io/badge/versão-1.4.0-E83E8C">
+<img alt="Versão 1.4.1" src="https://img.shields.io/badge/versão-1.4.1-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
@@ -39,6 +39,7 @@ Tudo é configurado no próprio Minecraft pelo painel aberto com `F8`. Não é n
 - **Padrões seguros:** pausa global, emergência `F9`, mobs temporários, rollback e ações de mundo desligadas por padrão.
 - **Presets e combos:** presets locais, quatro modos de combo, escala declarativa, roleta ponderada e sequências temporizadas.
 - **Ferramentas para LIVE:** simulador detalhado, metas/ranking da sessão e overlay OBS local opcional.
+- **Idioma automático:** a interface acompanha o Minecraft em português do Brasil ou inglês, com inglês como fallback.
 
 ## Como funciona
 
@@ -148,7 +149,7 @@ Todas as builds são client-side, funcionam no servidor integrado singleplayer e
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.4.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
+1. Baixe `tiktok-chaos-1.4.1+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.
