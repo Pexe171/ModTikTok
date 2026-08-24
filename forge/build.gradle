@@ -1,11 +1,11 @@
 plugins {
     id 'java-library'
-    id 'net.neoforged.moddev' version '2.0.144'
+    id 'net.minecraftforge.gradle' version '[7.0.3,8)'
     id 'com.gradleup.shadow' version '9.6.1'
     id 'idea'
 }
 
-version = "${mod_version}+mc${minecraft_version}-neoforge"
+version = "${mod_version}+mc${minecraft_version}-forge"
 group = mod_group_id
 
 base {
@@ -14,51 +14,53 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-repositories {
-    maven { url = 'https://jitpack.io' }
-}
-
-neoForge {
-    version = project.neo_version
-
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
+minecraft {
+    mappings channel: 'official', version: minecraft_version
 
     runs {
-        client {
-            client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-        gameTestServer {
-            type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
         configureEach {
-            logLevel = org.slf4j.event.Level.INFO
+            workingDir = layout.projectDirectory.dir('run')
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
         }
-    }
 
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
+        register('client')
+        register('gameTestServer')
     }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+    maven { url = 'https://jitpack.io' }
 }
 
 configurations {
     tiktokBundle
-    implementation.extendsFrom(tiktokBundle)
-    additionalRuntimeClasspath.extendsFrom(tiktokBundle)
+    compileOnly.extendsFrom(tiktokBundle)
+}
+
+def mergeTikTokRuntime = tasks.register('mergeTikTokRuntime', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    archiveBaseName = 'tiktok-chaos-dev-tiktok-runtime'
+    archiveClassifier = ''
+    destinationDirectory = layout.buildDirectory.dir('dev-libs')
+    configurations = [project.configurations.tiktokBundle]
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/INDEX.LIST', 'module-info.class'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Automatic-Module-Name': 'tiktokchaos.tiktok.runtime'
+    }
 }
 
 dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
     tiktokBundle("com.github.jwdeveloper.TikTok-Live-Java:Client:${tiktok_live_version}") {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
         exclude group: 'org.slf4j', module: 'slf4j-api'
         exclude group: 'com.google.code.gson', module: 'gson'
     }
+    runtimeOnly files(mergeTikTokRuntime.flatMap { it.archiveFile })
 
     testImplementation platform('org.junit:junit-bom:5.13.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -66,16 +68,27 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-sourceSets.main.resources {
-    srcDir('src/generated/resources')
+sourceSets {
+    main {
+        java {
+            srcDirs rootProject.file('src/main/java'), file('src/main/java')
+            exclude 'br/com/modtiktok/tiktokchaos/platform/neoforge/**'
+        }
+        resources {
+            srcDirs rootProject.file('src/main/resources'), layout.buildDirectory.dir('generated/sources/modMetadata')
+        }
+    }
+    test {
+        java.srcDir rootProject.file('src/test/java')
+    }
 }
 
 def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
     def replaceProperties = [
             minecraft_version: minecraft_version,
             minecraft_version_range: minecraft_version_range,
-            neo_version_range: neo_version_range,
-            loader_version_range: loader_version_range,
+            forge_version_range: forge_version_range,
+            forge_loader_version_range: forge_loader_version_range,
             mod_id: mod_id,
             mod_name: mod_name,
             mod_license: mod_license,
@@ -84,11 +97,12 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
     inputs.properties replaceProperties
     expand replaceProperties
     from 'src/main/templates'
-    into 'build/generated/sources/modMetadata'
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
 }
 
-sourceSets.main.resources.srcDir generateModMetadata
-neoForge.ideSyncTask generateModMetadata
+tasks.named('processResources') {
+    dependsOn generateModMetadata
+}
 
 tasks.named('jar') {
     archiveClassifier = 'thin'
@@ -123,9 +137,4 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
-}
-
-idea.module {
-    downloadSources = true
-    downloadJavadoc = true
 }

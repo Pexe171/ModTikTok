@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test-and-build:
-    name: Java 21 / NeoForge 1.21.1
+    name: Java 21 / Forge + NeoForge 1.21.1
     runs-on: ubuntu-latest
 
     steps:
@@ -36,14 +36,16 @@ jobs:
       - name: Test and build distributable JAR
         run: |
           chmod +x gradlew
-          ./gradlew test shadowJar --no-daemon
+          ./gradlew test shadowJar :forge:test :forge:shadowJar --no-daemon
 
       - name: Upload distributable JAR
         uses: actions/upload-artifact@v4
         with:
-          name: tiktok-chaos-${{ github.sha }}
+          name: tiktok-chaos-all-loaders-${{ github.sha }}
           path: |
             build/libs/tiktok-chaos-*.jar
+            forge/build/libs/tiktok-chaos-*.jar
             !build/libs/*-thin.jar
+            !forge/build/libs/*-thin.jar
           if-no-files-found: error
           retention-days: 14

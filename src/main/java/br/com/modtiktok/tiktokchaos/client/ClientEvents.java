@@ -4,10 +4,7 @@ import br.com.modtiktok.tiktokchaos.TikTokChaosMod;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import org.lwjgl.glfw.GLFW;
 
 public final class ClientEvents {
@@ -21,17 +18,11 @@ public final class ClientEvents {
     private ClientEvents() {
     }
 
-    public static void register(IEventBus modBus, IEventBus gameBus) {
-        modBus.addListener(ClientEvents::registerKeys);
-        gameBus.addListener(ClientEvents::clientTick);
-        gameBus.addListener(ClientEvents::renderHud);
+    public static KeyMapping openMenuMapping() {
+        return OPEN_MENU;
     }
 
-    private static void registerKeys(RegisterKeyMappingsEvent event) {
-        event.register(OPEN_MENU);
-    }
-
-    private static void clientTick(ClientTickEvent.Post event) {
+    public static void clientTick() {
         Minecraft minecraft = Minecraft.getInstance();
         TikTokChaosMod.runtime().onClientTick(minecraft);
         while (OPEN_MENU.consumeClick()) {
@@ -39,7 +30,7 @@ public final class ClientEvents {
         }
     }
 
-    private static void renderHud(RenderGuiEvent.Post event) {
-        TikTokChaosHud.render(event.getGuiGraphics());
+    public static void renderHud(GuiGraphics graphics) {
+        TikTokChaosHud.render(graphics);
     }
 }

@@ -16,18 +16,18 @@
 <p align="center">
   <a href="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml"><img alt="Build" src="https://github.com/Pexe171/ModTikTok/actions/workflows/build.yml/badge.svg"></a>
   <img alt="Minecraft 1.21.1" src="https://img.shields.io/badge/Minecraft-1.21.1-62B47A?logo=minecraft">
-  <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.x-EF6C35">
+  <img alt="Forge e NeoForge" src="https://img.shields.io/badge/Forge%20%7C%20NeoForge-52.1.x%20%7C%2021.1.x-EF6C35">
   <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk">
-  <img alt="Versão 1.2.0" src="https://img.shields.io/badge/versão-1.2.0-E83E8C">
+  <img alt="Versão 1.2.1" src="https://img.shields.io/badge/versão-1.2.1-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
-TikTok Chaos é um mod cliente para **Minecraft Java 1.21.1 + NeoForge**. Ele se conecta a uma LIVE pública do TikTok pelo nome de usuário e transforma curtidas, presentes, comentários, follows, compartilhamentos e inscrições em regras executadas dentro de um mundo singleplayer.
+TikTok Chaos é um mod cliente para **Minecraft Java 1.21.1 + Forge ou NeoForge**. Ele se conecta a uma LIVE pública do TikTok pelo nome de usuário e transforma curtidas, presentes, comentários, follows, compartilhamentos e inscrições em regras executadas dentro de um mundo singleplayer.
 
 Tudo é configurado no próprio Minecraft pelo painel aberto com `F8`. Não é necessário instalar programa auxiliar, informar senha do TikTok, usar chave de API, contratar serviço pago ou instalar o JEI.
 
 > [!IMPORTANT]
-> TikTok Chaos é um projeto comunitário independente. Ele não possui afiliação ou aprovação do TikTok, ByteDance, Mojang, Microsoft ou NeoForge. A conexão com a LIVE usa uma implementação comunitária não oficial e pode precisar de atualizações quando o TikTok alterar seu protocolo.
+> TikTok Chaos é um projeto comunitário independente. Ele não possui afiliação ou aprovação do TikTok, ByteDance, Mojang, Microsoft, Forge ou NeoForge. A conexão com a LIVE usa uma implementação comunitária não oficial e pode precisar de atualizações quando o TikTok alterar seu protocolo.
 
 ## Por que usar o TikTok Chaos?
 
@@ -130,14 +130,14 @@ Essas regras são exemplos editáveis, não comportamentos fixos. Elas podem ser
 | Componente | Versão necessária |
 | --- | --- |
 | Minecraft Java | `1.21.1` |
-| Mod loader | NeoForge `21.1.133` ou mais recente da linha `21.1.x` |
+| Mod loader | Forge `52.1.0+` da linha `52.x`, ou NeoForge `21.1.133+` da linha `21.1.x` |
 | Java | 21 |
 | Ambiente | Cliente, servidor integrado singleplayer |
 | Mods auxiliares obrigatórios | Nenhum |
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.2.0+mc1.21.1.jar` nos releases do projeto ou compile o código-fonte.
+1. Baixe `tiktok-chaos-1.2.1+mc1.21.1-forge.jar` ou `tiktok-chaos-1.2.1+mc1.21.1-neoforge.jar`, conforme o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.
@@ -199,16 +199,16 @@ Clone o repositório e use o JDK 21:
 git clone https://github.com/Pexe171/ModTikTok.git
 cd ModTikTok
 $env:JAVA_HOME='C:\caminho\para\jdk-21'
-.\gradlew.bat test shadowJar
+.\gradlew.bat test shadowJar :forge:test :forge:shadowJar
 ```
 
 Linux/macOS:
 
 ```bash
-./gradlew test shadowJar
+./gradlew test shadowJar :forge:test :forge:shadowJar
 ```
 
-O JAR distribuível, sem o classificador `thin`, será criado em `build/libs/`.
+O distribuível NeoForge será criado em `build/libs/`; o Forge ficará em `forge/build/libs/`. Use os JARs sem o classificador `thin`.
 
 ## Documentos do projeto
 

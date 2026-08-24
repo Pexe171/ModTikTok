@@ -1,8 +1,8 @@
 # TikTok Chaos
 
-**Suggested CurseForge summary:** Turn TikTok LIVE likes, gifts, comments, and follows into safe, configurable NeoForge singleplayer events.
+**Suggested CurseForge summary:** Turn TikTok LIVE likes, gifts, comments, and follows into safe, configurable Forge or NeoForge singleplayer events.
 
-TikTok Chaos connects a public TikTok LIVE broadcast directly to Minecraft Java. Viewer interactions can spawn temporary mobs, give items, apply effects, or trigger other configurable actions in a NeoForge singleplayer world.
+TikTok Chaos connects a public TikTok LIVE broadcast directly to Minecraft Java. Viewer interactions can spawn temporary mobs, give items, apply effects, or trigger other configurable actions in a Forge or NeoForge singleplayer world.
 
 No companion desktop application, paid service, TikTok password, API key, or additional Minecraft dependency is required. Open the in-game menu with `F8`, enter the LIVE creator's username, and connect.
 
@@ -24,7 +24,7 @@ No companion desktop application, paid service, TikTok password, API key, or add
 
 ## Quick start
 
-1. Install the JAR in a Minecraft `1.21.1` NeoForge instance.
+1. Install the JAR matching your loader in a Minecraft `1.21.1` Forge or NeoForge instance.
 2. Enter a singleplayer world.
 3. Press `F8`.
 4. Enter the LIVE creator's username without `@`.
@@ -39,7 +39,7 @@ TikTok Chaos never executes LIVE comments as Minecraft or operating-system comma
 ## Requirements
 
 - Minecraft Java `1.21.1`
-- NeoForge `21.1.133` or newer in the `21.1.x` line
+- Forge `52.1.0` or newer in the `52.x` line, or NeoForge `21.1.133` or newer in the `21.1.x` line
 - Java 21
 - Client-side installation for singleplayer
 
@@ -53,6 +53,6 @@ The bundled connection library uses an unofficial community implementation of Ti
 
 TikTok Chaos is licensed under MIT. It bundles the MIT-licensed [TikTokLiveJava](https://github.com/jwdeveloper/TikTok-Live-Java) and DepenDance libraries, MIT-licensed Java-WebSocket, and BSD-3-Clause Protocol Buffers runtime. Full third-party notices are included in the JAR.
 
-TikTok Chaos is an independent community project and is not affiliated with, endorsed by, or sponsored by TikTok, ByteDance, Mojang, Microsoft, or NeoForge. TikTok is a trademark of its respective owner.
+TikTok Chaos is an independent community project and is not affiliated with, endorsed by, or sponsored by TikTok, ByteDance, Mojang, Microsoft, Forge, or NeoForge. TikTok is a trademark of its respective owner.
 
 **Coded by [Pexe171](https://github.com/Pexe171).**

@@ -4,7 +4,6 @@ import br.com.modtiktok.tiktokchaos.rule.ActionSpec;
 import br.com.modtiktok.tiktokchaos.rule.Rule;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,10 +23,6 @@ public final class ConfigManager {
     private final Path path;
     private TikTokChaosConfig config;
     private String lastError = "";
-
-    public ConfigManager() {
-        this(FMLPaths.CONFIGDIR.get().resolve("tiktok-chaos.json"));
-    }
 
     public ConfigManager(Path path) {
         this.path = path;

@@ -1,6 +1,6 @@
 # Publishing TikTok Chaos
 
-The repository contains a manual GitHub Actions workflow that builds, tests, and uploads a new JAR to CurseForge without storing the API token in source control.
+The repository contains a GitHub Actions workflow that builds, tests, and uploads Forge and NeoForge JARs to CurseForge without storing the API token in source control.
 
 ## One-time GitHub configuration
 
@@ -28,13 +28,13 @@ Never put the token in `gradle.properties`, a workflow file, a script, a commit,
 After committing and pushing the version, create a matching tag:
 
 ```bash
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.2.1
+git push origin v1.2.1
 ```
 
-Tags matching `v*` automatically run the same workflow with the `beta` channel. The workflow refuses a tag whose version does not match `mod_version` in `gradle.properties`.
+Tags matching `v*` automatically run the same workflow with the `release` channel. The workflow refuses a tag whose version does not match `mod_version` in `gradle.properties`.
 
-The workflow uses Java 21, runs the automated tests, creates the shaded distributable JAR, preserves a copy as a GitHub Actions artifact, and uploads it through the official CurseForge Upload API. CurseForge moderation still applies to uploaded files.
+The workflow uses Java 21, runs both loader test suites, creates the shaded Forge and NeoForge distributable JARs, preserves them as GitHub Actions artifacts, and uploads both through the official CurseForge Upload API. CurseForge moderation still applies to uploaded files.
 
 ## Required values
 

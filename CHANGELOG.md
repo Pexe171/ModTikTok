@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 - Forge support and gift combos
+
+- Added a dedicated Minecraft Forge 1.21.1 build alongside the existing NeoForge 1.21.1 build.
+- Split loader-specific startup, event, HUD, and config-screen integration from the shared gameplay code.
+- Fixed gift combos so each gift repeats the configured action set, capped by `maxTriggersPerEvent`.
+- Applied cooldowns once per incoming combo so a combo does not suppress its own repetitions.
+- Updated CI and CurseForge publishing to build, test, and upload both loader artifacts.
+
 ## 1.2.0 - Random modpack targets
 
 - Added an `Aleatório (todos os mods)` card to the mob, item, and effect galleries.

@@ -13,6 +13,7 @@ import br.com.modtiktok.tiktokchaos.rule.RuleEngine;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -23,7 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class TikTokChaosRuntime implements AutoCloseable {
-    private final ConfigManager configManager = new ConfigManager();
+    private final ConfigManager configManager;
     private final RuleEngine ruleEngine = new RuleEngine();
     private final ActionExecutor actionExecutor = new ActionExecutor();
     private final ActionQueue actionQueue;
@@ -40,7 +41,8 @@ public final class TikTokChaosRuntime implements AutoCloseable {
     private volatile long nextActionAt;
     private volatile long nextCleanupAt;
 
-    public TikTokChaosRuntime() {
+    public TikTokChaosRuntime(Path configDirectory) {
+        configManager = new ConfigManager(configDirectory.resolve("tiktok-chaos.json"));
         TikTokChaosConfig config = configManager.load();
         actionQueue = new ActionQueue(config.safety.maxQueueSize);
         liveService = new TikTokLiveService(this::receiveEvent, this::updateStatus);

@@ -40,6 +40,54 @@ class RuleEngineTest {
     }
 
     @Test
+    void repeatsGiftRuleForEveryComboUnit() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+
+        List<RuleEngine.MatchedAction> actions = engine.evaluate(config,
+                LiveEvent.gift("Ana", 5655, "Rosa", 1, 3), 2_000);
+
+        assertEquals(3, actions.size());
+        assertTrue(actions.stream().allMatch(action -> action.ruleId().equals("gift_small")));
+        assertTrue(actions.stream().allMatch(action -> action.event().amount() == 3));
+    }
+
+    @Test
+    void repeatsTheCompleteActionSetAndCapsLargeGiftCombos() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        config.rules.clear();
+        config.safety.maxTriggersPerEvent = 3;
+        config.rules.add(new Rule("gift_combo", "Combo", LiveEventType.GIFT, new RuleCondition(), 0, 0,
+                List.of(ActionSpec.spawn("minecraft:zombie", 1), ActionSpec.give("minecraft:bread", 1))));
+
+        List<RuleEngine.MatchedAction> actions = engine.evaluate(config,
+                LiveEvent.gift("Ana", 5655, "Rosa", 1, 10), 2_000);
+
+        assertEquals(6, actions.size());
+        assertEquals(List.of(ActionType.SPAWN_ENTITY, ActionType.GIVE_ITEM,
+                        ActionType.SPAWN_ENTITY, ActionType.GIVE_ITEM,
+                        ActionType.SPAWN_ENTITY, ActionType.GIVE_ITEM),
+                actions.stream().map(action -> action.action().type).toList());
+    }
+
+    @Test
+    void appliesGiftCooldownOncePerIncomingCombo() {
+        RuleEngine engine = new RuleEngine();
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        config.rules.clear();
+        config.rules.add(new Rule("gift_combo", "Combo", LiveEventType.GIFT, new RuleCondition(), 1_000, 0,
+                List.of(ActionSpec.spawn("minecraft:zombie", 1))));
+
+        assertEquals(3, engine.evaluate(config,
+                LiveEvent.gift("Ana", 5655, "Rosa", 1, 3), 1_000).size());
+        assertTrue(engine.evaluate(config,
+                LiveEvent.gift("Bia", 5655, "Rosa", 1, 3), 1_500).isEmpty());
+        assertEquals(3, engine.evaluate(config,
+                LiveEvent.gift("Bia", 5655, "Rosa", 1, 3), 2_000).size());
+    }
+
+    @Test
     void appliesGlobalAndPerUserCommentCooldowns() {
         RuleEngine engine = new RuleEngine();
         TikTokChaosConfig config = TikTokChaosConfig.defaults();

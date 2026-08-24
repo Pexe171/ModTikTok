@@ -37,15 +37,15 @@ public final class RuleEngine {
             }
 
             int triggers = calculateTriggers(rule, event, config.safety.maxTriggersPerEvent);
+            if (triggers == 0 || !cooldownAllows(rule, event, now)) {
+                continue;
+            }
             for (int trigger = 0; trigger < triggers; trigger++) {
-                if (!cooldownAllows(rule, event, now)) {
-                    break;
-                }
                 for (ActionSpec action : rule.actions) {
                     result.add(new MatchedAction(rule.id, rule.name, event, action));
                 }
-                markCooldown(rule, event, now);
             }
+            markCooldown(rule, event, now);
         }
         return List.copyOf(result);
     }
@@ -57,6 +57,11 @@ public final class RuleEngine {
     }
 
     private int calculateTriggers(Rule rule, LiveEvent event, int maxTriggers) {
+        int triggerLimit = Math.max(1, maxTriggers);
+        if (event.type() == LiveEventType.GIFT) {
+            return Math.min(Math.max(1, event.amount()), triggerLimit);
+        }
+
         int threshold = Math.max(1, rule.condition.threshold);
         if (event.type() != LiveEventType.LIKE || threshold == 1) {
             return 1;
@@ -64,7 +69,7 @@ public final class RuleEngine {
 
         int total = counters.getOrDefault(rule.id, 0) + Math.max(0, event.amount());
         int available = total / threshold;
-        int triggers = Math.min(available, Math.max(1, maxTriggers));
+        int triggers = Math.min(available, triggerLimit);
         counters.put(rule.id, total - triggers * threshold);
         return triggers;
     }
