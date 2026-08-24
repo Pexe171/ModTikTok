@@ -39,7 +39,7 @@ jobs:
           ./gradlew test shadowJar :forge:test :forge:shadowJar --no-daemon
 
       - name: Upload distributable JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tiktok-chaos-all-loaders-${{ github.sha }}
           path: |
@@ -91,7 +91,7 @@ jobs:
             --no-daemon
 
       - name: Upload legacy Forge JARs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tiktok-chaos-legacy-forge-${{ github.sha }}
           path: |
