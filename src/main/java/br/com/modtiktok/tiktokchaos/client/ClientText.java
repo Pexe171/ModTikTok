@@ -121,6 +121,9 @@ final class ClientText {
                 value.substring(0, value.length() - suffix.length()));
         prefix = "Preset aplicado: ";
         if (value.startsWith(prefix)) return text("runtime.tiktokchaos.preset_applied", value.substring(prefix.length()));
+        prefix = "Preset incompatível: ";
+        if (value.startsWith(prefix)) return text("runtime.tiktokchaos.preset_incompatible",
+                value.substring(prefix.length()));
         return value;
     }
 

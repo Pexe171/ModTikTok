@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 - Popular mod and modpack presets
+
+- Added ten built-in presets for Cursed Walking, Pixelmon, Cobblemon, All the Mods, Better MC, DawnCraft, Vault Hunters, Create, Mekanism, and Iron's Spells 'n Spellbooks.
+- Added explicit Forge/NeoForge mod detection for every compatibility preset. Incompatible presets show their missing requirements and cannot be applied.
+- Added a second registry check for every item, entity, effect, sound, and integration target; missing targets disable only their affected rule instead of producing repeated runtime errors.
+- Added safe, allow-listed integrations for TaCZ ammunition, Pixelmon random shiny spawns, and Cobblemon natural-pool spawns. Preset files cannot supply arbitrary Minecraft commands.
+- Made Cursed Walking follows grant 9mm ammunition and gifts progress through 12g, 5.56x45, and rare .50 BMG ammunition.
+- Made every Pixelmon gift unit spawn one random shiny, preserving the combo rule: three roses produce three queued shiny spawns within the configured safety cap.
+- Added the popular-mod preset browser to the compact Forge 1.16.5, 1.18.2, and 1.19.2 interface as well as compatibility status in the full interface.
+- Expanded tests for preset requirements, blocked incompatible application, missing registry targets, command allow-listing, amount caps, and three-rose execution.
+
 ## 1.4.1 - Minecraft language support
 
 - Made the complete dashboard follow Minecraft's selected language automatically, with Brazilian Portuguese and English resources and English fallback for other languages.

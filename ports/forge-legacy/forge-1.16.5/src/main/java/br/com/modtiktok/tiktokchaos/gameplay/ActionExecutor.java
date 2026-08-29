@@ -1,5 +1,6 @@
 package br.com.modtiktok.tiktokchaos.gameplay;
 
+import br.com.modtiktok.tiktokchaos.compat.ModCompatibilityActions;
 import br.com.modtiktok.tiktokchaos.config.TikTokChaosConfig;
 import br.com.modtiktok.tiktokchaos.rule.ActionRequest;
 import br.com.modtiktok.tiktokchaos.rule.ActionSpec;
@@ -88,6 +89,7 @@ public final class ActionExecutor {
                 case LIKE_FOUNTAIN -> likeFountain(level, player, action);
                 case SPAWN_VIEWER_BOSS -> spawnBoss(level, player, request, action, safety);
                 case REVERSIBLE_BLOCK_BOX -> reversibleBox(level, player, safety);
+                case MOD_INTEGRATION -> modIntegration(server, player, action);
             };
             player.sendMessage(new StringTextComponent("[TikTok] ").withStyle(TextFormatting.LIGHT_PURPLE)
                     .append(new StringTextComponent(request.event().userName() + " -> " + result)
@@ -142,6 +144,7 @@ public final class ActionExecutor {
             case PLAY_SOUND -> id != null && Registry.SOUND_EVENT.containsKey(id);
             case VISUAL_ITEM_RAIN, GIFT_CANNON -> action.target.isBlank()
                     || id != null && Registry.ITEM.containsKey(id);
+            case MOD_INTEGRATION -> ModCompatibilityActions.isAvailable(action.target);
             default -> true;
         };
     }
@@ -232,6 +235,16 @@ public final class ActionExecutor {
         ItemStack stack = new ItemStack(item, Math.max(1, action.amount));
         if (!player.inventory.add(stack)) player.drop(stack, false);
         return stack.getCount() + "x " + stack.getHoverName().getString();
+    }
+
+    private String modIntegration(MinecraftServer server, ServerPlayerEntity player, ActionSpec action) {
+        if (!ModCompatibilityActions.isAvailable(action.target)) {
+            throw new IllegalStateException(tr("result.tiktokchaos.mod_integration_unavailable", action.target));
+        }
+        server.getCommands().performCommand(
+                player.createCommandSourceStack().withPermission(4).withSuppressedOutput(),
+                ModCompatibilityActions.command(action));
+        return tr("result.tiktokchaos.mod_integration", ModCompatibilityActions.displayName(action.target));
     }
 
     private String applyEffect(ServerPlayerEntity player, ActionSpec action) {

@@ -57,6 +57,11 @@ public final class TikTokChaosScreen extends Screen {
             if (runtime.areActionsPaused()) runtime.resumeActions(); else runtime.pauseActions();
             rebuildScreen();
         }));
+        addButton(new Button(left + 220, top + 122, 192, 22,
+                new TranslationTextComponent("gui.tiktokchaos.popular_mod_presets"), button -> {
+            saveUsername();
+            if (minecraft != null) minecraft.setScreen(new PopularModPresetsScreen(this));
+        }));
         addSimulation(left + 18, top + 168, "gui.tiktokchaos.simulate_likes", LiveEventType.LIKE);
         addSimulation(left + 217, top + 168, "gui.tiktokchaos.simulate_gift", LiveEventType.GIFT);
         addSimulation(left + 18, top + 198, "gui.tiktokchaos.simulate_comment", LiveEventType.COMMENT);

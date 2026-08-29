@@ -7,6 +7,7 @@ import br.com.modtiktok.tiktokchaos.config.TikTokChaosConfig;
 import br.com.modtiktok.tiktokchaos.live.LiveEvent;
 import br.com.modtiktok.tiktokchaos.live.LiveEventType;
 import br.com.modtiktok.tiktokchaos.preset.PresetApplyMode;
+import br.com.modtiktok.tiktokchaos.preset.PresetCompatibility;
 import br.com.modtiktok.tiktokchaos.preset.PresetDocument;
 import br.com.modtiktok.tiktokchaos.preset.PresetPreview;
 import br.com.modtiktok.tiktokchaos.rule.Rule;
@@ -212,7 +213,9 @@ public final class TikTokChaosScreen extends Screen {
         int last = Math.min(presets.size(), first + 4);
         for (int index = first; index < last; index++) {
             PresetDocument preset = presets.get(index);
+            PresetCompatibility compatibility = runtime.presetCompatibility(preset.id);
             String prefix = preset.id.equals(selectedPresetId) ? "◆ " : "◇ ";
+            prefix += compatibility.available() ? "✓ " : "✕ ";
             String name = ClientText.configuredName("preset", preset.id, preset.name);
             addRenderableWidget(Button.builder(Component.literal(prefix + trim(name, 46)), button -> {
                 selectedPresetId = preset.id;
@@ -233,14 +236,19 @@ public final class TikTokChaosScreen extends Screen {
             next.active = presetPage + 1 < pageCount;
             addRenderableWidget(next);
         }
-        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.replace"), button -> {
+        PresetCompatibility selectedCompatibility = runtime.presetCompatibility(selectedPresetId);
+        Button replace = Button.builder(ClientText.component("gui.tiktokchaos.replace"), button -> {
             runtime.applyPreset(selectedPresetId, PresetApplyMode.REPLACE);
             rebuildScreen();
-        }).bounds(left + 92, top + 160, 126, 20).build());
-        addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.merge"), button -> {
+        }).bounds(left + 92, top + 160, 126, 20).build();
+        replace.active = selectedCompatibility.available();
+        addRenderableWidget(replace);
+        Button merge = Button.builder(ClientText.component("gui.tiktokchaos.merge"), button -> {
             runtime.applyPreset(selectedPresetId, PresetApplyMode.MERGE);
             rebuildScreen();
-        }).bounds(left + 224, top + 160, 92, 20).build());
+        }).bounds(left + 224, top + 160, 92, 20).build();
+        merge.active = selectedCompatibility.available();
+        addRenderableWidget(merge);
         addRenderableWidget(Button.builder(ClientText.component("gui.tiktokchaos.export_current"), button -> {
             runtime.exportPreset();
             rebuildScreen();
@@ -393,13 +401,21 @@ public final class TikTokChaosScreen extends Screen {
 
     private void renderPresets(GuiGraphics graphics, int left, int top) {
         TikTokChaosRuntime runtime = TikTokChaosMod.runtime();
-        graphics.drawString(font, ClientText.text("gui.tiktokchaos.preset_intro"), left + 18, top + 56,
+        List<PresetDocument> catalog = runtime.presetCatalog();
+        int first = Math.min(presetPage * 4, Math.max(0, catalog.size() - 1));
+        boolean popularMods = !catalog.isEmpty() && "popular-mods".equals(catalog.get(first).category);
+        graphics.drawString(font, ClientText.text(popularMods ? "gui.tiktokchaos.preset_popular_mods"
+                        : "gui.tiktokchaos.preset_intro"), left + 18, top + 56,
                 0xFFBDB0C7, true);
         try {
             PresetPreview replace = runtime.previewPreset(selectedPresetId, PresetApplyMode.REPLACE);
-            String preview = ClientText.text("gui.tiktokchaos.preset_preview", replace.resultingRules(),
-                    replace.disabledRules());
-            graphics.drawString(font, preview, left + 158, top + 194, 0xFF66F0C8, true);
+            String preview = replace.available()
+                    ? ClientText.text("gui.tiktokchaos.preset_preview", replace.resultingRules(),
+                    replace.disabledRules())
+                    : ClientText.text("gui.tiktokchaos.preset_missing_mods",
+                    trim(String.join(", ", replace.missingRequirements()), 44));
+            graphics.drawString(font, preview, left + 158, top + 194,
+                    replace.available() ? 0xFF66F0C8 : 0xFFFF6B81, true);
         } catch (RuntimeException error) {
             graphics.drawString(font, trim(error.getMessage(), 48), left + 158, top + 194, 0xFFFF6B81, true);
         }

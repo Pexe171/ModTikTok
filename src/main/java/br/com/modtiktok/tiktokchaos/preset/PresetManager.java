@@ -117,23 +117,54 @@ public final class PresetManager {
 
     public PresetPreview preview(TikTokChaosConfig current, PresetDocument preset, PresetApplyMode mode,
                                  Predicate<ActionSpec> targetValidator) {
-        ApplyResult result = merge(current, validate(copy(preset)), mode, targetValidator);
+        return preview(current, preset, mode, targetValidator, ignored -> true);
+    }
+
+    public PresetPreview preview(TikTokChaosConfig current, PresetDocument preset, PresetApplyMode mode,
+                                 Predicate<ActionSpec> targetValidator, Predicate<String> modValidator) {
+        ApplyResult result = merge(current, validate(copy(preset)), mode, targetValidator, modValidator, false);
         return result.preview();
     }
 
     public TikTokChaosConfig apply(TikTokChaosConfig current, PresetDocument preset, PresetApplyMode mode,
                                    Predicate<ActionSpec> targetValidator) {
-        return merge(current, validate(copy(preset)), mode, targetValidator).config();
+        return apply(current, preset, mode, targetValidator, ignored -> true);
+    }
+
+    public TikTokChaosConfig apply(TikTokChaosConfig current, PresetDocument preset, PresetApplyMode mode,
+                                   Predicate<ActionSpec> targetValidator, Predicate<String> modValidator) {
+        return merge(current, validate(copy(preset)), mode, targetValidator, modValidator, true).config();
+    }
+
+    public PresetCompatibility compatibility(PresetDocument preset, Predicate<String> modValidator) {
+        PresetDocument checked = validate(copy(preset));
+        List<String> missing = new ArrayList<>();
+        for (PresetRequirement requirement : checked.requirements) {
+            boolean found = requirement.anyOfModIds.stream().anyMatch(modValidator);
+            if (!found) {
+                missing.add(requirement.name + " (" + String.join(" or ", requirement.anyOfModIds) + ")");
+            }
+        }
+        return new PresetCompatibility(missing.isEmpty(), List.copyOf(missing));
     }
 
     private ApplyResult merge(TikTokChaosConfig current, PresetDocument preset, PresetApplyMode mode,
-                              Predicate<ActionSpec> targetValidator) {
+                              Predicate<ActionSpec> targetValidator, Predicate<String> modValidator,
+                              boolean requireCompatible) {
+        PresetCompatibility compatibility = compatibility(preset, modValidator);
+        if (requireCompatible && !compatibility.available()) {
+            throw new IllegalStateException("Required mods missing: "
+                    + String.join(", ", compatibility.missingRequirements()));
+        }
         TikTokChaosConfig result = GSON.fromJson(GSON.toJson(current), TikTokChaosConfig.class);
         List<String> warnings = new ArrayList<>();
         int added = 0;
         int replaced = 0;
         int renamed = 0;
         int disabled = 0;
+        if (!compatibility.available()) {
+            warnings.add("Required mods missing: " + String.join(", ", compatibility.missingRequirements()));
+        }
 
         if (mode == PresetApplyMode.REPLACE) {
             replaced = result.rules.size();
@@ -165,7 +196,8 @@ public final class PresetManager {
         }
 
         PresetPreview preview = new PresetPreview(preset.id, preset.name, mode, result.rules.size(), added,
-                replaced, renamed, disabled, List.copyOf(warnings));
+                replaced, renamed, disabled, compatibility.available(), compatibility.missingRequirements(),
+                List.copyOf(warnings));
         return new ApplyResult(result, preview);
     }
 
@@ -181,6 +213,24 @@ public final class PresetManager {
         value.id = cleanId(value.id);
         if (value.name == null || value.name.isBlank()) value.name = value.id;
         if (value.description == null) value.description = "";
+        if (value.category == null || value.category.isBlank()) value.category = "general";
+        value.category = cleanId(value.category);
+        if (value.requirements == null) value.requirements = new ArrayList<>();
+        if (value.requirements.size() > 20) throw new IllegalArgumentException("Preset exceeds 20 requirements");
+        for (PresetRequirement requirement : value.requirements) {
+            if (requirement == null) throw new IllegalArgumentException("Preset contains an empty requirement");
+            if (requirement.name == null || requirement.name.isBlank()) requirement.name = "Mod";
+            if (requirement.anyOfModIds == null || requirement.anyOfModIds.isEmpty()) {
+                throw new IllegalArgumentException("Preset contains a requirement without mod ids");
+            }
+            requirement.anyOfModIds = requirement.anyOfModIds.stream()
+                    .map(id -> id == null ? "" : id.strip().toLowerCase(Locale.ROOT))
+                    .filter(id -> id.matches("[a-z0-9_-]{1,80}"))
+                    .distinct().toList();
+            if (requirement.anyOfModIds.isEmpty()) {
+                throw new IllegalArgumentException("Preset contains an invalid mod requirement");
+            }
+        }
         if (value.rules == null) value.rules = new ArrayList<>();
         if (value.rules.size() > 500) throw new IllegalArgumentException("Preset excede 500 regras");
         Set<String> ids = new HashSet<>();
@@ -339,7 +389,139 @@ public final class PresetManager {
         presets.put("diamond-hunt", new PresetDocument("diamond-hunt", "Diamond Hunt",
                 "Desafio visual sem criar itens coletáveis nem alterar blocos.", safety(3, 15, 30),
                 List.of(diamondGift)));
-        return Map.copyOf(presets);
+        List<Rule> cursedWalking = new ArrayList<>();
+        cursedWalking.add(simple("cursed-follow-ammo", "Follow: munição 9mm", LiveEventType.FOLLOW,
+                integration("tacz:ammo_9mm", 24)));
+        cursedWalking.add(gift("cursed-small-ammo", "Presente pequeno: cartuchos 12g", 1, 9,
+                integration("tacz:ammo_12g", 8)));
+        cursedWalking.add(once(gift("cursed-medium-ammo", "Presente médio: munição 5.56", 10, 99,
+                integration("tacz:ammo_556x45", 24))));
+        cursedWalking.add(once(gift("cursed-rare-ammo", "Presente grande: munição rara .50 BMG", 100,
+                Integer.MAX_VALUE, integration("tacz:ammo_50bmg", 8))));
+        cursedWalking.add(likes("cursed-zombie-wave", 100, ActionSpec.spawn("minecraft:zombie", 1)));
+        presets.put("cursed-walking", modPreset("cursed-walking", "Cursed Walking",
+                "Seguidores entregam munição e presentes sobem até a rara .50 BMG.",
+                safety(4, 35, 75), cursedWalking,
+                PresetRequirement.mod("Timeless and Classics Zero", "tacz"),
+                PresetRequirement.mod("Cursed Walking zombies", "zombies_plus", "feralzombie")));
+
+        List<Rule> pixelmon = List.of(
+                gift("pixelmon-shiny-gift", "Presente: Pokémon shiny aleatório", 1, Integer.MAX_VALUE,
+                        integration("pixelmon:random_shiny", 1)),
+                simple("pixelmon-follow-candy", "Follow: Rare Candy", LiveEventType.FOLLOW,
+                        ActionSpec.give("pixelmon:rare_candy", 2)),
+                simple("pixelmon-sub-master-ball", "Inscrição: Master Ball", LiveEventType.SUBSCRIBE,
+                        ActionSpec.give("pixelmon:master_ball", 1))
+        );
+        presets.put("pixelmon", modPreset("pixelmon", "Pixelmon",
+                "Cada unidade do presente invoca um Pokémon shiny aleatório.", safety(4, 20, 90), pixelmon,
+                PresetRequirement.mod("Pixelmon", "pixelmon")));
+
+        List<Rule> cobblemon = List.of(
+                gift("cobblemon-random-gift", "Presente: Pokémon aleatório da área", 1, Integer.MAX_VALUE,
+                        integration("cobblemon:random", 1)),
+                simple("cobblemon-follow-candy", "Follow: Rare Candy", LiveEventType.FOLLOW,
+                        ActionSpec.give("cobblemon:rare_candy", 2)),
+                simple("cobblemon-sub-master-ball", "Inscrição: Master Ball", LiveEventType.SUBSCRIBE,
+                        ActionSpec.give("cobblemon:master_ball", 1))
+        );
+        presets.put("cobblemon", modPreset("cobblemon", "Cobblemon",
+                "Presentes invocam Pokémon da tabela natural da área.", safety(4, 20, 90), cobblemon,
+                PresetRequirement.mod("Cobblemon", "cobblemon")));
+
+        List<Rule> allTheMods = List.of(
+                simple("atm-follow-redstone", "Follow: redstone", LiveEventType.FOLLOW,
+                        ActionSpec.give("minecraft:redstone", 16)),
+                gift("atm-small-allthemodium", "Presente pequeno: allthemodium", 1, 9,
+                        ActionSpec.give("allthemodium:allthemodium_ingot", 1)),
+                once(gift("atm-medium-vibranium", "Presente médio: vibranium", 10, 99,
+                        ActionSpec.give("allthemodium:vibranium_ingot", 1))),
+                once(gift("atm-large-unobtainium", "Presente grande: unobtainium", 100, Integer.MAX_VALUE,
+                        ActionSpec.give("allthemodium:unobtainium_ingot", 1)))
+        );
+        presets.put("all-the-mods", modPreset("all-the-mods", "All the Mods",
+                "Progressão de redstone a Allthemodium, Vibranium e Unobtainium.",
+                safety(4, 20, 60), allTheMods,
+                PresetRequirement.mod("Allthemodium (ATM 6/7/8/9/10)", "allthemodium")));
+
+        List<Rule> betterMc = List.of(
+                simple("bettermc-follow-ambrosium", "Follow: Ambrosium", LiveEventType.FOLLOW,
+                        ActionSpec.give("aether:ambrosium_shard", 4)),
+                gift("bettermc-gift-warpstone", "Presente: Warp Stone", 1, Integer.MAX_VALUE,
+                        ActionSpec.give("waystones:warp_stone", 1)),
+                likes("bettermc-likes-aerbunny", 250, ActionSpec.spawn("aether:aerbunny", 1))
+        );
+        presets.put("better-mc", modPreset("better-mc", "Better MC (Forge)",
+                "Recompensas do Aether e Waystones, componentes centrais do pack.",
+                safety(3, 20, 60), betterMc,
+                PresetRequirement.mod("The Aether", "aether"),
+                PresetRequirement.mod("Waystones", "waystones")));
+
+        List<Rule> dawnCraft = List.of(
+                simple("dawncraft-follow-gapple", "Follow: maçã dourada", LiveEventType.FOLLOW,
+                        ActionSpec.give("minecraft:golden_apple", 1)),
+                gift("dawncraft-gift-nine-tails", "Presente: Nine Tails", 10, Integer.MAX_VALUE,
+                        ActionSpec.spawn("simple_mobs:nine_tails", 1)),
+                likes("dawncraft-likes-strength", 100, ActionSpec.effect("minecraft:strength", 20, 0))
+        );
+        presets.put("dawncraft", modPreset("dawncraft", "DawnCraft",
+                "Combate e recompensas inspirados na progressão Souls-like do pack.",
+                safety(2, 20, 75), dawnCraft,
+                PresetRequirement.mod("DawnCraft Mobs", "simple_mobs")));
+
+        List<Rule> vaultHunters = List.of(
+                simple("vault-follow-diamond", "Follow: Vault Diamond", LiveEventType.FOLLOW,
+                        ActionSpec.give("the_vault:vault_diamond", 1)),
+                once(gift("vault-gift-crystal", "Presente: Vault Crystal", 10, Integer.MAX_VALUE,
+                        ActionSpec.give("the_vault:vault_crystal", 1))),
+                likes("vault-likes-luck", 100, ActionSpec.effect("minecraft:luck", 30, 0))
+        );
+        presets.put("vault-hunters", modPreset("vault-hunters", "Vault Hunters",
+                "Vault Diamonds e cristais ligados à progressão do modpack.",
+                safety(3, 20, 60), vaultHunters,
+                PresetRequirement.mod("The Vault", "the_vault")));
+
+        List<Rule> create = List.of(
+                simple("create-follow-alloy", "Follow: Andesite Alloy", LiveEventType.FOLLOW,
+                        ActionSpec.give("create:andesite_alloy", 4)),
+                gift("create-gift-sheet", "Presente: Golden Sheet", 1, 9,
+                        ActionSpec.give("create:golden_sheet", 2)),
+                once(gift("create-gift-precision", "Presente maior: Precision Mechanism", 10,
+                        Integer.MAX_VALUE, ActionSpec.give("create:precision_mechanism", 1)))
+        );
+        presets.put("create", modPreset("create", "Create",
+                "Materiais de automação e mecanismos de precisão.", safety(4, 15, 45), create,
+                PresetRequirement.mod("Create", "create")));
+
+        List<Rule> mekanism = List.of(
+                simple("mekanism-follow-osmium", "Follow: Osmium", LiveEventType.FOLLOW,
+                        ActionSpec.give("mekanism:ingot_osmium", 4)),
+                gift("mekanism-small-alloy", "Presente pequeno: Infused Alloy", 1, 9,
+                        ActionSpec.give("mekanism:alloy_infused", 2)),
+                once(gift("mekanism-medium-alloy", "Presente médio: Reinforced Alloy", 10, 99,
+                        ActionSpec.give("mekanism:alloy_reinforced", 2))),
+                once(gift("mekanism-large-alloy", "Presente grande: Atomic Alloy", 100,
+                        Integer.MAX_VALUE, ActionSpec.give("mekanism:alloy_atomic", 2)))
+        );
+        presets.put("mekanism", modPreset("mekanism", "Mekanism",
+                "Escada de materiais do Osmium ao Atomic Alloy.", safety(4, 15, 45), mekanism,
+                PresetRequirement.mod("Mekanism", "mekanism")));
+
+        List<Rule> ironSpells = List.of(
+                simple("irons-follow-common-ink", "Follow: Common Ink", LiveEventType.FOLLOW,
+                        ActionSpec.give("irons_spellbooks:common_ink", 2)),
+                gift("irons-small-rare-ink", "Presente pequeno: Rare Ink", 1, 9,
+                        ActionSpec.give("irons_spellbooks:rare_ink", 1)),
+                once(gift("irons-medium-epic-ink", "Presente médio: Epic Ink", 10, 99,
+                        ActionSpec.give("irons_spellbooks:epic_ink", 1))),
+                once(gift("irons-large-legendary-ink", "Presente grande: Legendary Ink", 100,
+                        Integer.MAX_VALUE, ActionSpec.give("irons_spellbooks:legendary_ink", 1)))
+        );
+        presets.put("irons-spells", modPreset("irons-spells", "Iron's Spells 'n Spellbooks",
+                "Tintas mágicas comuns, raras, épicas e lendárias.", safety(4, 15, 45), ironSpells,
+                PresetRequirement.mod("Iron's Spells 'n Spellbooks", "irons_spellbooks")));
+
+        return java.util.Collections.unmodifiableMap(presets);
     }
 
     private static TikTokChaosConfig.Safety safety(int actionsPerSecond, int mobs, int lifetime) {
@@ -372,6 +554,21 @@ public final class PresetManager {
 
     private static Rule simple(String id, String name, LiveEventType type, ActionSpec action) {
         return new Rule(id, name, type, new RuleCondition(), 0, 0, List.of(action));
+    }
+
+    private static PresetDocument modPreset(String id, String name, String description,
+                                            TikTokChaosConfig.Safety safety, List<Rule> rules,
+                                            PresetRequirement... requirements) {
+        return new PresetDocument(id, name, description, "popular-mods", List.of(requirements), safety, rules);
+    }
+
+    private static ActionSpec integration(String target, int amount) {
+        return new ActionSpec(ActionType.MOD_INTEGRATION, target, amount, 0, 0, 0, "");
+    }
+
+    private static Rule once(Rule rule) {
+        rule.execution.mode = br.com.modtiktok.tiktokchaos.rule.ExecutionMode.ONCE;
+        return rule;
     }
 
     private record ApplyResult(TikTokChaosConfig config, PresetPreview preview) {

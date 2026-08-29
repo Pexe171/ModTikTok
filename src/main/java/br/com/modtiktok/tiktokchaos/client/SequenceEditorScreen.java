@@ -172,6 +172,7 @@ public final class SequenceEditorScreen extends Screen {
             case GIVE_ITEM, VISUAL_ITEM_RAIN, GIFT_CANNON -> "minecraft:diamond";
             case APPLY_EFFECT -> "minecraft:slowness";
             case PLAY_SOUND -> "minecraft:entity.experience_orb.pickup";
+            case MOD_INTEGRATION -> "pixelmon:random_shiny";
             default -> "";
         };
         if (action.type == ActionType.MESSAGE || action.type == ActionType.CENTER_MESSAGE) action.message = "TikTok Chaos!";

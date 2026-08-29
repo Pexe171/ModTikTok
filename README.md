@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 through 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge and NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 through 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-<img alt="Version 1.4.1" src="https://img.shields.io/badge/version-1.4.1-E83E8C">
+<img alt="Version 1.5.0" src="https://img.shields.io/badge/version-1.5.0-E83E8C">
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-66F0C8"></a>
 </p>
 
@@ -38,6 +38,7 @@ Everything is configured in Minecraft through the `F8` dashboard. No companion d
 - **Built for LIVE traffic:** bounded queues, rate limits, duplicate protection and cached registries keep event bursts controlled.
 - **Safe defaults:** global pause, `F9` emergency cleanup, temporary mobs, rollback, and world-editing actions disabled by default.
 - **Presets and combos:** local presets, four combo modes, declarative scaling, weighted roulette, and timed sequences.
+- **Popular mod presets:** ten detected integrations for major mods and modpacks, with missing requirements blocked before application.
 - **LIVE tools:** detailed simulator, session goals/ranking, and an optional local OBS overlay.
 - **Automatic language:** the interface follows Minecraft in English or Brazilian Portuguese, with English fallback.
 
@@ -80,6 +81,7 @@ On Minecraft 1.20.1 and 1.21.1, open `F8` → **Rules** → **Edit** and select 
 | Gift Cannon and Like Fountain | Item/— | Visual-only effect |
 | Viewer boss | Compatible mob | Separate boss cap |
 | Reversible box | — | Double confirmation, cap and rollback |
+| Safe mod integration | Closed built-in target list | Required-mod detection and amount cap |
 
 Each gallery supports:
 
@@ -112,6 +114,25 @@ The catalog is built lazily and cached. Only visible cards are rendered each fra
 | LIVE start/end | Broadcast state |
 
 Gift repeat count is applied to the whole configured action set. For example, if one rose triggers one zombie, a TikTok event with `amount = 3` queues three zombie actions (up to `maxTriggersPerEvent`).
+
+## Popular mod and modpack presets
+
+Open `F8` → **Presets** on the full dashboard, or **Popular mod presets** on the compact legacy dashboard. The mod checks the required Forge/NeoForge mod IDs before enabling **Replace** or **Merge**. It then validates every registry target again; a target removed by a different mod version disables only that rule.
+
+| Preset | Minimum detected content | Examples |
+| --- | --- | --- |
+| Cursed Walking | TaCZ plus Zombies Plus or Feral Zombie | Follow gives 9mm; gifts progress through 12g, 5.56 and rare .50 BMG |
+| Pixelmon | Pixelmon | Each gift unit spawns one random shiny; follow gives Rare Candy |
+| Cobblemon | Cobblemon | Each gift unit spawns from the natural area pool; follow gives Rare Candy |
+| All the Mods | Allthemodium | Redstone, Allthemodium, Vibranium and Unobtainium rewards |
+| Better MC (Forge) | The Aether and Waystones | Ambrosium, Warp Stones and an Aerbunny event |
+| DawnCraft | DawnCraft Mobs | Souls-like combat rewards and a Nine Tails event |
+| Vault Hunters | The Vault | Vault Diamonds and Vault Crystals |
+| Create | Create | Andesite Alloy, Golden Sheets and Precision Mechanisms |
+| Mekanism | Mekanism | Osmium and tiered alloys |
+| Iron's Spells 'n Spellbooks | Iron's Spells 'n Spellbooks | Common through Legendary Ink |
+
+Pixelmon, Cobblemon, and TaCZ use only hard-coded, allow-listed integration actions maintained by TikTok Chaos. Imported presets cannot execute arbitrary commands. A three-rose Pixelmon event retains `amount = 3`, so it queues three random shiny spawns, subject to `maxTriggersPerEvent` and action-rate limits.
 
 ## Included starter rules
 
@@ -149,7 +170,7 @@ All builds are client-side, run against the integrated singleplayer server, and 
 
 ### Steps
 
-1. Download the `tiktok-chaos-1.4.1+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
+1. Download the `tiktok-chaos-1.5.0+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
 2. Put the JAR in the instance's `mods` folder.
 3. Start Minecraft and enter a singleplayer world.
 4. Press `F8`.
@@ -168,6 +189,7 @@ The full `F8` screen on 1.20.1 and 1.21.1 contains:
 - **Safety:** configure action throughput, mob cap and mob lifetime.
 - **Simulator:** quick or detailed tests with viewer, gift, unit coins, amount, likes and comment.
 - **Presets:** preview and apply by replace or merge, always with an automatic configuration backup.
+- **Popular mod presets:** detected requirements, compatible/missing status, and protected application.
 - **Session:** goals, ranking, name privacy, temporary avatars and the local OBS overlay.
 
 The compact HUD shows connection state, `ACTIVE/PAUSED`, latest event, queue and tracked mobs. Goal, ranking and chat widgets are optional.

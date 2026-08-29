@@ -14,6 +14,8 @@ public final class PresetDocument {
     public String id = "preset";
     public String name = "Preset";
     public String description = "";
+    public String category = "general";
+    public List<PresetRequirement> requirements = new ArrayList<>();
     public TikTokChaosConfig.Safety recommendedSafety;
     public List<Rule> rules = new ArrayList<>();
 
@@ -27,5 +29,13 @@ public final class PresetDocument {
         this.description = description;
         this.recommendedSafety = recommendedSafety;
         this.rules = new ArrayList<>(rules);
+    }
+
+    public PresetDocument(String id, String name, String description, String category,
+                          List<PresetRequirement> requirements, TikTokChaosConfig.Safety recommendedSafety,
+                          List<Rule> rules) {
+        this(id, name, description, recommendedSafety, rules);
+        this.category = category;
+        this.requirements = new ArrayList<>(requirements);
     }
 }

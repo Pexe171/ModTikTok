@@ -23,6 +23,12 @@ final class ClientText {
         return text("status.tiktokchaos.actions." + state.name().toLowerCase(Locale.ROOT));
     }
 
+    static String configuredName(String category, String id, String fallback) {
+        if (id == null || id.isBlank()) return fallback;
+        String key = category + ".tiktokchaos." + id.toLowerCase(Locale.ROOT).replace('_', '-');
+        return I18n.exists(key) ? I18n.get(key) : fallback;
+    }
+
     static String eventSummary(LiveEvent event) {
         String user = event.userName();
         return switch (event.type()) {

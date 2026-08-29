@@ -11,6 +11,8 @@ public record PresetPreview(
         int replacedRules,
         int renamedRules,
         int disabledRules,
+        boolean available,
+        List<String> missingRequirements,
         List<String> warnings
 ) {
 }

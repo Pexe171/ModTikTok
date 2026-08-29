@@ -1,0 +1,6 @@
+3f714853ce653e488776a45e97c676cd1206cb882cf4edc8357c9d64c9fa27dd  tiktok-chaos-1.5.0+mc1.16.5-forge.jar
+3d93290dc37220d78defe8cdb3cd64ac7a1de3e795e9ffc0af97900dd4d0f043  tiktok-chaos-1.5.0+mc1.18.2-forge.jar
+853885fce8dbb8107e6c44334fbb8e1351317ef506d776362b94eb9371e7ae38  tiktok-chaos-1.5.0+mc1.19.2-forge.jar
+d1fb11cea613da16ee992fc641bfbb1aae7b49437ccd8123488c712838e1b9e2  tiktok-chaos-1.5.0+mc1.20.1-forge.jar
+75181a5fb90ec77cf086a85a8135bbd3b97d08760513309dab38184ef2801cdb  tiktok-chaos-1.5.0+mc1.21.1-forge.jar
+95caf57294cc4dd9f68776ff71ad0cf7b21d0e9f11b6819e111e9d4616f3f60b  tiktok-chaos-1.5.0+mc1.21.1-neoforge.jar

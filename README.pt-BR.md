@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 até 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge e NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 até 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-<img alt="Versão 1.4.1" src="https://img.shields.io/badge/versão-1.4.1-E83E8C">
+<img alt="Versão 1.5.0" src="https://img.shields.io/badge/versão-1.5.0-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
@@ -38,6 +38,7 @@ Tudo é configurado no próprio Minecraft pelo painel aberto com `F8`. Não é n
 - **Preparado para tráfego de LIVE:** filas limitadas, controle de velocidade, proteção contra eventos duplicados e registries em cache.
 - **Padrões seguros:** pausa global, emergência `F9`, mobs temporários, rollback e ações de mundo desligadas por padrão.
 - **Presets e combos:** presets locais, quatro modos de combo, escala declarativa, roleta ponderada e sequências temporizadas.
+- **Presets de mods famosos:** dez integrações detectadas para mods e modpacks conhecidos, bloqueando requisitos ausentes antes da aplicação.
 - **Ferramentas para LIVE:** simulador detalhado, metas/ranking da sessão e overlay OBS local opcional.
 - **Idioma automático:** a interface acompanha o Minecraft em português do Brasil ou inglês, com inglês como fallback.
 
@@ -80,6 +81,7 @@ No Minecraft 1.20.1 e 1.21.1, abra `F8` → **Regras** → **Editar** e selecion
 | Canhão de presentes e fonte de curtidas | Item/— | Efeito apenas visual |
 | Boss do espectador | Mob compatível | Limite separado de bosses |
 | Caixa reversível | — | Confirmação dupla, limite e rollback |
+| Integração segura com mod | Lista fechada mantida pelo TikTok Chaos | Detecção do mod obrigatório e limite de quantidade |
 
 Cada galeria possui:
 
@@ -112,6 +114,25 @@ O catálogo é criado somente quando necessário e fica em cache. Apenas os cart
 | Início/fim da LIVE | Estado da transmissão |
 
 A quantidade recebida no presente repete o conjunto inteiro de ações configuradas. Por exemplo: se uma rosa invoca um zumbi, um evento do TikTok com `amount = 3` coloca três ações de zumbi na fila (respeitando `maxTriggersPerEvent`).
+
+## Presets de mods e modpacks famosos
+
+Abra `F8` → **Presets** no painel completo ou **Presets de mods famosos** no painel compacto das versões antigas. O mod verifica os IDs obrigatórios do Forge/NeoForge antes de liberar **Substituir** ou **Mesclar**. Depois, valida novamente cada alvo no registry; se outra versão do mod removeu um alvo, apenas aquela regra fica desativada.
+
+| Preset | Conteúdo mínimo detectado | Exemplos |
+| --- | --- | --- |
+| Cursed Walking | TaCZ mais Zombies Plus ou Feral Zombie | Follow dá 9mm; presentes avançam por 12g, 5.56 e .50 BMG rara |
+| Pixelmon | Pixelmon | Cada unidade do presente invoca um shiny aleatório; follow dá Rare Candy |
+| Cobblemon | Cobblemon | Cada unidade do presente usa a tabela natural da área; follow dá Rare Candy |
+| All the Mods | Allthemodium | Redstone, Allthemodium, Vibranium e Unobtainium |
+| Better MC (Forge) | The Aether e Waystones | Ambrosium, Warp Stones e evento de Aerbunny |
+| DawnCraft | DawnCraft Mobs | Recompensas de combate e evento de Nine Tails |
+| Vault Hunters | The Vault | Vault Diamonds e Vault Crystals |
+| Create | Create | Andesite Alloy, Golden Sheets e Precision Mechanisms |
+| Mekanism | Mekanism | Osmium e ligas por nível |
+| Iron's Spells 'n Spellbooks | Iron's Spells 'n Spellbooks | Tintas de Common até Legendary |
+
+Pixelmon, Cobblemon e TaCZ usam somente ações internas fixas e permitidas pelo TikTok Chaos. Presets importados não podem executar comandos arbitrários. Um evento de três rosas no Pixelmon mantém `amount = 3`, portanto coloca três spawns shiny aleatórios na fila, respeitando `maxTriggersPerEvent` e o limite de ações.
 
 ## Regras iniciais incluídas
 
@@ -149,7 +170,7 @@ Todas as builds são client-side, funcionam no servidor integrado singleplayer e
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.4.1+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
+1. Baixe `tiktok-chaos-1.5.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.
@@ -168,6 +189,7 @@ A tela `F8` completa das versões 1.20.1 e 1.21.1 possui:
 - **Segurança:** velocidade das ações, limite de mobs e tempo de vida.
 - **Simulador:** teste rápido ou detalhado com usuário, presente, moedas, quantidade, curtidas e comentário.
 - **Presets:** prévia e aplicação por substituição ou mesclagem, sempre com backup automático.
+- **Presets de mods famosos:** requisitos detectados, estado compatível/ausente e aplicação protegida.
 - **Sessão:** metas, ranking, privacidade de nomes, avatares temporários e overlay OBS local.
 
 O HUD compacto mostra conexão, estado `ATIVO/PAUSADO`, último evento, fila e mobs. Metas, ranking e chat são opcionais.

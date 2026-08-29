@@ -126,6 +126,9 @@ public final class RuleEditorScreen extends Screen {
         } else if (action.type == ActionType.PLAY_SOUND) {
             actionTargetField = field(fieldX, top + 206, fieldWidth, action.target, 128);
             actionTargetField.setHint(Component.literal("minecraft:entity.experience_orb.pickup"));
+        } else if (action.type == ActionType.MOD_INTEGRATION) {
+            actionTargetField = field(fieldX, top + 206, fieldWidth, action.target, 128);
+            actionTargetField.setHint(Component.literal("pixelmon:random_shiny"));
         } else {
             actionTargetField = null;
         }
@@ -295,6 +298,7 @@ public final class RuleEditorScreen extends Screen {
             case APPLY_EFFECT -> "minecraft:slowness";
             case PLAY_SOUND -> "minecraft:entity.experience_orb.pickup";
             case VISUAL_ITEM_RAIN, GIFT_CANNON -> "minecraft:diamond";
+            case MOD_INTEGRATION -> "pixelmon:random_shiny";
             default -> "";
         };
         if (action.type == ActionType.APPLY_EFFECT) {
@@ -332,14 +336,16 @@ public final class RuleEditorScreen extends Screen {
     private boolean hasPrimaryCounter(ActionType type) {
         return switch (type) {
             case SPAWN_ENTITY, GIVE_ITEM, APPLY_EFFECT, SHORT_TELEPORT, SET_WEATHER, LAUNCH_PLAYER,
-                    FREEZE_PLAYER, PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN -> true;
+                    FREEZE_PLAYER, PARTICLE_BURST, VISUAL_ITEM_RAIN, GIFT_CANNON, LIKE_FOUNTAIN,
+                    MOD_INTEGRATION -> true;
             default -> false;
         };
     }
 
     private void adjustPrimary(ActionSpec action, int direction) {
         switch (action.type) {
-            case SPAWN_ENTITY, GIVE_ITEM -> action.amount = clamp(action.amount + direction, 1, 20);
+            case SPAWN_ENTITY, GIVE_ITEM, MOD_INTEGRATION ->
+                    action.amount = clamp(action.amount + direction, 1, 20);
             case APPLY_EFFECT -> action.amplifier = clamp(action.amplifier + direction, 0, 9);
             case SHORT_TELEPORT -> action.radius = clamp(action.radius + direction, 3, 64);
             case SET_WEATHER -> action.durationTicks = clamp(action.durationTicks + direction * 100, 100, 12_000);
@@ -353,7 +359,8 @@ public final class RuleEditorScreen extends Screen {
 
     private String primaryLabel(ActionSpec action) {
         return switch (action.type) {
-            case SPAWN_ENTITY, GIVE_ITEM -> ClientText.text("gui.tiktokchaos.rule_editor.type_amount");
+            case SPAWN_ENTITY, GIVE_ITEM, MOD_INTEGRATION ->
+                    ClientText.text("gui.tiktokchaos.rule_editor.type_amount");
             case APPLY_EFFECT -> ClientText.text("gui.tiktokchaos.rule_editor.type_effect_level");
             case SHORT_TELEPORT -> ClientText.text("gui.tiktokchaos.rule_editor.type_radius");
             case SET_WEATHER, FREEZE_PLAYER -> ClientText.text("gui.tiktokchaos.rule_editor.type_duration");
@@ -376,6 +383,7 @@ public final class RuleEditorScreen extends Screen {
             case CENTER_MESSAGE -> ClientText.text("gui.tiktokchaos.rule_editor.center_message");
             case PLAY_SOUND -> ClientText.text("gui.tiktokchaos.rule_editor.sound_id");
             case VISUAL_ITEM_RAIN, GIFT_CANNON -> ClientText.text("gui.tiktokchaos.rule_editor.visual_item");
+            case MOD_INTEGRATION -> ClientText.text("gui.tiktokchaos.rule_editor.mod_integration_target");
             default -> ClientText.text("gui.tiktokchaos.rule_editor.automatic_config");
         };
     }
@@ -409,6 +417,8 @@ public final class RuleEditorScreen extends Screen {
             case LIKE_FOUNTAIN -> ClientText.text("gui.tiktokchaos.rule_editor.summary_hearts", action.amount * 10);
             case SPAWN_VIEWER_BOSS -> ClientText.text("gui.tiktokchaos.rule_editor.viewer_boss_summary");
             case REVERSIBLE_BLOCK_BOX -> ClientText.text("gui.tiktokchaos.rule_editor.rollback_box_summary");
+            case MOD_INTEGRATION -> ClientText.text("gui.tiktokchaos.rule_editor.mod_integration_summary",
+                    action.amount, trim(action.target, 24));
         };
     }
 

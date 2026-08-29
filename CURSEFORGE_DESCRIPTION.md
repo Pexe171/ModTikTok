@@ -20,6 +20,9 @@ No companion desktop application, paid service, TikTok password, API key, or add
 - Built-in event simulator for offline setup and testing
 - Detailed gift/combo simulator with preview that does not consume cooldowns or session statistics
 - Built-in and local presets with preview, replace/merge, export, validation, and automatic backups
+- Ten popular mod/modpack presets for Cursed Walking, Pixelmon, Cobblemon, All the Mods, Better MC, DawnCraft, Vault Hunters, Create, Mekanism, and Iron's Spells 'n Spellbooks
+- Automatic required-mod detection that blocks incompatible presets and disables rules with missing registry targets
+- Allow-listed TaCZ ammunition, Pixelmon random shiny, and Cobblemon natural-pool actions; imported presets cannot run arbitrary commands
 - Per-unit, once, tiered, and scaled combo execution plus deterministic weighted roulette
 - Timed cinematic sequences, viewer bosses, Gift Cannon, Like Fountain, sounds, particles, and temporary visual items
 - Global pause and `F9` emergency cleanup without disconnecting the LIVE

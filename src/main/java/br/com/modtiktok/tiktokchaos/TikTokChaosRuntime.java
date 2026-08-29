@@ -4,6 +4,7 @@ import br.com.modtiktok.tiktokchaos.analytics.SessionStats;
 import br.com.modtiktok.tiktokchaos.avatar.TemporaryAvatarCache;
 import br.com.modtiktok.tiktokchaos.config.ConfigManager;
 import br.com.modtiktok.tiktokchaos.config.TikTokChaosConfig;
+import br.com.modtiktok.tiktokchaos.compat.ModEnvironment;
 import br.com.modtiktok.tiktokchaos.gameplay.ActionExecutor;
 import br.com.modtiktok.tiktokchaos.live.ConnectionStatus;
 import br.com.modtiktok.tiktokchaos.live.LiveEvent;
@@ -13,6 +14,7 @@ import br.com.modtiktok.tiktokchaos.preset.PresetApplyMode;
 import br.com.modtiktok.tiktokchaos.preset.PresetDocument;
 import br.com.modtiktok.tiktokchaos.preset.PresetManager;
 import br.com.modtiktok.tiktokchaos.preset.PresetPreview;
+import br.com.modtiktok.tiktokchaos.preset.PresetCompatibility;
 import br.com.modtiktok.tiktokchaos.overlay.LocalOverlayServer;
 import br.com.modtiktok.tiktokchaos.rule.ActionQueue;
 import br.com.modtiktok.tiktokchaos.rule.ActionRequest;
@@ -273,7 +275,14 @@ public final class TikTokChaosRuntime implements AutoCloseable {
     public PresetPreview previewPreset(String presetId, PresetApplyMode mode) {
         PresetDocument preset = presetManager.find(presetId);
         if (preset == null) throw new IllegalArgumentException("Preset não encontrado: " + presetId);
-        return presetManager.preview(config(), preset, mode, actionExecutor::isTargetAvailable);
+        return presetManager.preview(config(), preset, mode, actionExecutor::isTargetAvailable,
+                ModEnvironment::isLoaded);
+    }
+
+    public PresetCompatibility presetCompatibility(String presetId) {
+        PresetDocument preset = presetManager.find(presetId);
+        if (preset == null) return new PresetCompatibility(false, List.of("Preset " + presetId));
+        return presetManager.compatibility(preset, ModEnvironment::isLoaded);
     }
 
     public synchronized boolean applyPreset(String presetId, PresetApplyMode mode) {
@@ -282,7 +291,14 @@ public final class TikTokChaosRuntime implements AutoCloseable {
             lastAction = "Preset não encontrado: " + presetId;
             return false;
         }
-        TikTokChaosConfig applied = presetManager.apply(config(), preset, mode, actionExecutor::isTargetAvailable);
+        TikTokChaosConfig applied;
+        try {
+            applied = presetManager.apply(config(), preset, mode, actionExecutor::isTargetAvailable,
+                    ModEnvironment::isLoaded);
+        } catch (IllegalStateException error) {
+            lastAction = "Preset incompatível: " + error.getMessage();
+            return false;
+        }
         configManager.set(applied);
         actionQueue.setCapacity(applied.safety.maxQueueSize);
         boolean saved = configManager.save();
