@@ -40,6 +40,39 @@ class RuleEngineTest {
     }
 
     @Test
+    void giftNameOverridesValueTierAndRepeatsEveryComboUnit() {
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        RuleCondition condition = new RuleCondition();
+        condition.giftName = "  rOsE  ";
+        // New rules previously retained this hidden comment filter after switching to Gift.
+        condition.commentCommand = "!novo";
+        config.rules.add(new Rule("rose_zombie", "Rose zombie", LiveEventType.GIFT, condition, 0, 0,
+                List.of(ActionSpec.spawn("minecraft:zombie", 1))));
+
+        List<RuleEngine.MatchedAction> actions = new RuleEngine().evaluate(config,
+                LiveEvent.gift("Ana", 5655, "Rose", 1, 3), 2_000);
+
+        assertEquals(3, actions.size());
+        assertTrue(actions.stream().allMatch(action -> action.ruleId().equals("rose_zombie")
+                && action.action().target.equals("minecraft:zombie") && action.action().amount == 1));
+    }
+
+    @Test
+    void nonMatchingGiftNameFallsBackToValueTier() {
+        TikTokChaosConfig config = TikTokChaosConfig.defaults();
+        RuleCondition condition = new RuleCondition();
+        condition.giftName = "Rose";
+        config.rules.add(new Rule("rose", "Rose", LiveEventType.GIFT, condition, 0, 0,
+                List.of(ActionSpec.spawn("minecraft:zombie", 1))));
+
+        List<RuleEngine.MatchedAction> actions = new RuleEngine().evaluate(config,
+                LiveEvent.gift("Ana", 999, "Other gift", 1, 1), 2_000);
+
+        assertEquals(1, actions.size());
+        assertEquals("gift_small", actions.get(0).ruleId());
+    }
+
+    @Test
     void repeatsGiftRuleForEveryComboUnit() {
         RuleEngine engine = new RuleEngine();
         TikTokChaosConfig config = TikTokChaosConfig.defaults();

@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 até 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge e NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 até 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-<img alt="Versão 1.5.0" src="https://img.shields.io/badge/versão-1.5.0-E83E8C">
+<img alt="Versão 1.5.1" src="https://img.shields.io/badge/versão-1.5.1-E83E8C">
   <a href="./LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-66F0C8"></a>
 </p>
 
@@ -67,7 +67,21 @@ O conector recebe somente eventos de uma LIVE pública. Ele não entra na conta 
 
 ## Editor visual de regras
 
-No Minecraft 1.20.1 e 1.21.1, abra `F8` → **Regras** → **Editar** e selecione uma ação. Os ports 1.16.5–1.19.2 usam um painel compacto para conexão e simulação; as regras avançadas nessas versões continuam editáveis em `config/tiktok-chaos.json`.
+No Minecraft 1.20.1 e 1.21.1, abra `F8` → **Regras** → **Editar** e selecione uma ação. Os ports 1.16.5–1.19.2 incluem um editor compacto de **Presentes para mobs**; as demais regras avançadas nessas versões continuam editáveis em `config/tiktok-chaos.json`.
+
+### Fazer um presente específico invocar um mob
+
+1. Abra um mundo singleplayer e pressione `F8` → **Regras** → **Nova regra** na 1.20.1/1.21.1.
+2. Dê um nome à regra e mude **Evento** para **Presente**. Aparecem os campos **Nome do presente / ID**.
+3. Digite o nome como recebido do TikTok, por exemplo `Rose`. Deixe o ID vazio se usar o nome. Como alternativa, deixe o nome vazio e use o ID numérico do presente. Maiúsculas/minúsculas e espaços nas pontas são ignorados; nomes traduzidos não são equivalentes. Se preencher nome e ID, ambos precisam corresponder. Ambos vazios aceitam qualquer presente dentro da faixa de valor.
+4. Selecione **Invocar mob** → **Escolher**, escolha o mob e deixe a quantidade em `1`.
+5. Mantenha **Combo: Por unidade**, coloque `0` nos dois cooldowns para aceitar cada combo recebido, mantenha os valores mínimo/máximo padrão, ative a regra e clique em **Salvar**.
+6. Abra **Simulador** → **Abrir simulador detalhado**. Escolha **Presente**, informe o mesmo nome ou ID, `1` moeda/unidade e quantidade `3`, e clique em **Prévia**. A regra deve corresponder a três ações. **Executar no mundo** testa os spawns sem precisar abrir uma LIVE. Os limites de segurança e a pausa global continuam valendo.
+7. Informe seu usuário do TikTok e conecte quando sua LIVE começar.
+
+No **Forge 1.16.5, 1.18.2 e 1.19.2**, use `F8` → **Presentes para mobs**. Informe nome ou ID do presente, ID do mob como `minecraft:zombie` e quantidade `1`, e clique em **Salvar**. As setas alternam entre as regras específicas existentes e o formulário de nova regra. **Prévia** verifica três presentes nas regras salvas, sem invocar entidades. Salve suas alterações antes de testar.
+
+Regras específicas correspondentes têm prioridade sobre faixas genéricas de valor. Com um mob por presente e execução por unidade, três rosas correspondentes colocam três spawns na fila, respeitando os limites de segurança. As regras e configurações JSON existentes continuam compatíveis.
 
 | Ação | Seleção visual | Controles extras |
 | --- | --- | --- |
@@ -170,7 +184,7 @@ Todas as builds são client-side, funcionam no servidor integrado singleplayer e
 
 ### Passos
 
-1. Baixe `tiktok-chaos-1.5.0+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
+1. Baixe `tiktok-chaos-1.5.1+mc<versão>-<loader>.jar`, escolhendo exatamente a versão do Minecraft e o loader da sua instância.
 2. Coloque o JAR na pasta `mods` da instância.
 3. Abra o Minecraft e entre em um mundo singleplayer.
 4. Pressione `F8`.

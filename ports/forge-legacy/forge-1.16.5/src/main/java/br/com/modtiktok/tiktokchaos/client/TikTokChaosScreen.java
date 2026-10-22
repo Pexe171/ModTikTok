@@ -66,7 +66,12 @@ public final class TikTokChaosScreen extends Screen {
         addSimulation(left + 217, top + 168, "gui.tiktokchaos.simulate_gift", LiveEventType.GIFT);
         addSimulation(left + 18, top + 198, "gui.tiktokchaos.simulate_comment", LiveEventType.COMMENT);
         addSimulation(left + 217, top + 198, "gui.tiktokchaos.simulate_follow", LiveEventType.FOLLOW);
-        addButton(new Button(left + PANEL_WIDTH - 82, top + 222, 82, 20,
+        addButton(new Button(left + 18, top + 226, 194, 20,
+                new TranslationTextComponent("gui.tiktokchaos.gift_mobs.title"), button -> {
+            saveUsername();
+            if (minecraft != null) minecraft.setScreen(new GiftMobRulesScreen(this));
+        }));
+        addButton(new Button(left + PANEL_WIDTH - 82, top + 226, 82, 20,
                 new TranslationTextComponent("gui.tiktokchaos.close"), button -> onClose()));
     }
 

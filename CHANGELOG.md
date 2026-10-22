@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.1 - Specific gifts to mobs
+
+- Added the missing Gift name field to gift rules, alongside an optional gift ID, with English and Brazilian Portuguese labels and in-game guidance.
+- Gift names match the name received from TikTok, ignoring case and surrounding whitespace. When both name and ID are filled, both must match; leaving both blank keeps value-tier/any-gift rules.
+- Fixed hidden comment and gift conditions blocking rules after changing the event type. The editor now shows only the fields relevant to the selected event and preserves drafts when toggling rule state.
+- Named gifts take priority over generic value tiers and retain per-unit combo behavior: three matching roses queue three mob actions within the configured limits.
+- Added a compact Gifts to mobs editor on Forge 1.16.5, 1.18.2, and 1.19.2, with create/edit/delete, installed-mob validation, and an offline preview of three gifts using saved rules.
+- Added regression tests for gift names, optional IDs, tier fallback, combos, event switching, and configuration persistence. Existing configurations remain compatible.
+- Documented setup and offline testing in English and Brazilian Portuguese.
+
 ## 1.5.0 - Popular mod and modpack presets
 
 - Added ten built-in presets for Cursed Walking, Pixelmon, Cobblemon, All the Mods, Better MC, DawnCraft, Vault Hunters, Create, Mekanism, and Iron's Spells 'n Spellbooks.

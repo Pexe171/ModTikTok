@@ -31,6 +31,17 @@ class ConfigManagerTest {
     }
 
     @Test
+    void preservesGiftNamesAcrossSaveAndLoadAndDefaultsOldRulesToAnyName() {
+        Path file = tempDirectory.resolve("config.json");
+        ConfigManager manager = new ConfigManager(file);
+        TikTokChaosConfig config = manager.load();
+        assertTrue(config.rules.stream().allMatch(rule -> rule.condition.giftName.isEmpty()));
+        config.rules.get(0).condition.giftName = "Rose";
+        assertTrue(manager.save());
+        assertEquals("Rose", new ConfigManager(file).load().rules.get(0).condition.giftName);
+    }
+
+    @Test
     void preservesInvalidFileAndFallsBackToDefaults() throws Exception {
         Path file = tempDirectory.resolve("config.json");
         Files.writeString(file, "{ conteúdo inválido");

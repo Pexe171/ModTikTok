@@ -18,7 +18,7 @@
   <img alt="Minecraft 1.16.5 through 1.21.1" src="https://img.shields.io/badge/Minecraft-1.16.5%20%E2%86%92%201.21.1-62B47A?logo=minecraft">
   <img alt="Forge and NeoForge" src="https://img.shields.io/badge/loaders-Forge%20%7C%20NeoForge-EF6C35">
   <img alt="Java 8 through 21" src="https://img.shields.io/badge/Java-8%20%7C%2017%20%7C%2021-ED8B00?logo=openjdk">
-<img alt="Version 1.5.0" src="https://img.shields.io/badge/version-1.5.0-E83E8C">
+<img alt="Version 1.5.1" src="https://img.shields.io/badge/version-1.5.1-E83E8C">
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-66F0C8"></a>
 </p>
 
@@ -67,7 +67,21 @@ The connector only receives public LIVE events. It does not log in to TikTok, po
 
 ## Visual rule editor
 
-On Minecraft 1.20.1 and 1.21.1, open `F8` → **Rules** → **Edit** and select an action. The 1.16.5–1.19.2 ports use a compact dashboard for connection and simulation; advanced rules on those versions remain editable in `config/tiktok-chaos.json`.
+On Minecraft 1.20.1 and 1.21.1, open `F8` → **Rules** → **Edit** and select an action. The 1.16.5–1.19.2 ports include a compact **Gifts to mobs** editor; other advanced rules on those versions remain editable in `config/tiktok-chaos.json`.
+
+### Make a specific gift spawn a mob
+
+1. Open a singleplayer world and press `F8` → **Rules** → **New rule** on 1.20.1/1.21.1.
+2. Enter a rule name and switch **Event** to **Gift**. The **Gift name / ID** fields appear.
+3. Enter the name exactly as received from TikTok, for example `Rose`. Leave ID blank if you filter by name. Alternatively, leave the name blank and use the gift's numeric ID. Names ignore case and surrounding whitespace; translated names are not interchangeable. If both fields are filled, both must match. Both blank means any gift within the value range.
+4. Select **Spawn mob** → **Choose**, choose the mob, and set amount to `1`.
+5. Keep **Combo: Per unit**, use `0` for both cooldowns if every incoming combo should trigger, leave the default minimum/maximum values, enable the rule, and **Save**.
+6. Open **Simulator** → **Open detailed simulator**. Choose **Gift**, enter the same gift name or ID, `1` coin/unit and amount `3`, then **Preview**. The named rule should match three actions. **Execute in world** tests actual spawns without a LIVE. Safety caps and global pause still apply.
+7. Enter your TikTok username and connect when your LIVE starts.
+
+On **Forge 1.16.5, 1.18.2 and 1.19.2**, use `F8` → **Gifts to mobs** instead. Enter the gift name or ID, the mob ID such as `minecraft:zombie`, and amount `1`, then **Save**. The arrows switch between existing specific gift-to-mob rules and the new-rule form. **Preview** checks three gifts against saved rules without spawning entities. Save after editing before previewing; names and IDs can be changed independently.
+
+Specific matching gift rules override generic gift-value tiers. With one mob per gift and per-unit execution, three matching roses queue three mob spawns, subject to safety caps. Existing rules and JSON configurations remain supported.
 
 | Action | Visual selection | Extra controls |
 | --- | --- | --- |
@@ -170,7 +184,7 @@ All builds are client-side, run against the integrated singleplayer server, and 
 
 ### Steps
 
-1. Download the `tiktok-chaos-1.5.0+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
+1. Download the `tiktok-chaos-1.5.1+mc<version>-<loader>.jar` file matching both your exact Minecraft version and loader.
 2. Put the JAR in the instance's `mods` folder.
 3. Start Minecraft and enter a singleplayer world.
 4. Press `F8`.

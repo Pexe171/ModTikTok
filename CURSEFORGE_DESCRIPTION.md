@@ -10,7 +10,8 @@ No companion desktop application, paid service, TikTok password, API key, or add
 
 - Likes, gifts, comments, follows, shares, subscriptions, joins, room statistics, LIVE start, and LIVE end events
 - Accumulated-like thresholds and gift value tiers
-- Exact gift-ID overrides
+- Specific gifts by name or optional numeric ID, with priority over generic value tiers
+- Compact Gifts to mobs editor on Forge 1.16.5–1.19.2; full rule editor on 1.20.1/1.21.1
 - Whitelisted comment commands; arbitrary chat text is never executed
 - In-game rule editor with cooldowns, thresholds, targets, amounts, and multiple actions
 - Searchable, scrollable icon galleries for mobs, items, and effects, including compatible modpack content
@@ -45,6 +46,14 @@ The creator must currently be LIVE and the broadcast must be public.
 ## Safety
 
 TikTok Chaos never executes LIVE comments as Minecraft or operating-system commands. The mob catalog is restricted to registered spawn-egg-backed entities, action throughput is limited, and spawned mobs expire automatically. World editing is disabled by default; its reversible box requires double confirmation, skips block entities, has a hard block cap, and rolls itself back.
+
+## Set up a specific gift
+
+On Minecraft 1.20.1/1.21.1, open `F8` → **Rules** → **New rule**, select **Gift**, and enter the **Gift name** as received from TikTok (for example `Rose`), or leave the name blank and use its numeric ID. Choose **Spawn mob**, select a mob and amount, keep **Per unit** execution, and save. Use zero cooldowns to accept every combo. Test offline in the detailed simulator before your LIVE.
+
+On Forge 1.16.5–1.19.2, open `F8` → **Gifts to mobs**, enter the gift name or ID, mob ID (for example `minecraft:zombie`) and amount, then save. Preview checks three gifts using saved rules.
+
+Names ignore case and surrounding whitespace. If both name and ID are provided, both must match. Three matching gifts trigger three configured actions with per-unit execution, within safety caps.
 
 ## Requirements
 

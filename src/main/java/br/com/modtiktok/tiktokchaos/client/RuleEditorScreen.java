@@ -33,6 +33,7 @@ public final class RuleEditorScreen extends Screen {
     private EditBox nameField;
     private EditBox commandField;
     private EditBox giftIdField;
+    private EditBox giftNameField;
     private EditBox minValueField;
     private EditBox maxValueField;
     private EditBox thresholdField;
@@ -73,8 +74,23 @@ public final class RuleEditorScreen extends Screen {
         commandField = field(fieldX, top + 94, 128, rule.condition.commentCommand, 64);
         giftIdField = field(fieldX + 138, top + 94, 72, Integer.toString(rule.condition.giftId), 10);
         thresholdField = field(fieldX + 220, top + 94, 72, Integer.toString(rule.condition.threshold), 10);
+        boolean gift = rule.event == LiveEventType.GIFT;
+        commandField.visible = commandField.active = rule.event == LiveEventType.COMMENT;
+        thresholdField.visible = thresholdField.active = rule.event == LiveEventType.LIKE;
+        giftIdField.visible = giftIdField.active = gift;
+        if (gift) {
+            giftIdField.setX(fieldX + 206);
+            giftIdField.setWidth(86);
+            if (rule.condition.giftId < 0) giftIdField.setValue("");
+            giftIdField.setHint(ClientText.component("gui.tiktokchaos.rule_editor.gift_id_hint"));
+        }
+        giftNameField = field(fieldX, top + 94, 196, rule.condition.giftName, 128);
+        giftNameField.visible = giftNameField.active = gift;
+        giftNameField.setHint(ClientText.component("gui.tiktokchaos.rule_editor.gift_name_hint"));
         minValueField = field(fieldX, top + 122, 92, Integer.toString(rule.condition.minGiftValue), 10);
         maxValueField = field(fieldX + 102, top + 122, 108, Integer.toString(rule.condition.maxGiftValue), 10);
+        minValueField.visible = minValueField.active = gift;
+        maxValueField.visible = maxValueField.active = gift;
         cooldownField = field(fieldX, top + 150, 92, Long.toString(rule.cooldownMillis / 1_000), 7);
         userCooldownField = field(fieldX + 102, top + 150, 108,
                 Long.toString(rule.perUserCooldownMillis / 1_000), 7);
@@ -87,6 +103,7 @@ public final class RuleEditorScreen extends Screen {
         }).bounds(fieldX, top + 68, 210, 20).build());
 
         addRenderableWidget(Button.builder(enabledLabel(), button -> {
+            persistFields(false);
             rule.enabled = !rule.enabled;
             rebuildScreen();
         }).bounds(fieldX + 220, top + 68, 72, 20).build());
@@ -230,8 +247,15 @@ public final class RuleEditorScreen extends Screen {
                 : "gui.tiktokchaos.rule_editor.edit_heading"), left, top + 4, 0xFF66F0C8, true);
         label(graphics, left, top + 48, ClientText.text("gui.tiktokchaos.rule_editor.name"));
         label(graphics, left, top + 74, ClientText.text("gui.tiktokchaos.rule_editor.event_state"));
-        label(graphics, left, top + 100, ClientText.text("gui.tiktokchaos.rule_editor.command_id_goal"));
-        label(graphics, left, top + 128, ClientText.text("gui.tiktokchaos.rule_editor.min_max"));
+        if (rule.event == LiveEventType.GIFT) {
+            label(graphics, left, top + 100, ClientText.text("gui.tiktokchaos.rule_editor.gift_name_id"));
+            label(graphics, left, top + 128, ClientText.text("gui.tiktokchaos.rule_editor.min_max"));
+            graphics.drawString(font, ClientText.text("gui.tiktokchaos.rule_editor.gift_help"),
+                    left + 18, top + 26, 0xFFBDB0C7, true);
+        } else if (rule.event == LiveEventType.COMMENT || rule.event == LiveEventType.LIKE) {
+            label(graphics, left, top + 100, ClientText.text(rule.event == LiveEventType.COMMENT
+                    ? "gui.tiktokchaos.simulator.comment" : "gui.tiktokchaos.simulator.likes"));
+        }
         label(graphics, left, top + 156, ClientText.text("gui.tiktokchaos.rule_editor.cooldowns"));
         ActionSpec action = currentAction();
         label(graphics, left, top + 186, primaryLabel(action));
@@ -262,6 +286,7 @@ public final class RuleEditorScreen extends Screen {
             rule.name = nameField.getValue().strip();
             rule.condition.commentCommand = commandField.getValue().strip();
             rule.condition.giftId = integer(giftIdField, -1);
+            rule.condition.giftName = giftNameField.getValue().strip();
             rule.condition.threshold = Math.max(1, integer(thresholdField, 1));
             rule.condition.minGiftValue = Math.max(0, integer(minValueField, 0));
             rule.condition.maxGiftValue = Math.max(rule.condition.minGiftValue,
